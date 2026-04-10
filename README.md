@@ -18,6 +18,14 @@ graph TD
     F --> I[ROI & Spend Analytics]
 ```
 
+## 🖥️ Dashboard Preview
+
+![Dashboard KPIs and Spending](images/kpi_and_spending_chart.png)
+*Executive KPIs and Price-Category Spend Breakdown*
+
+![Format Split and High Friction Titles](images/format_split_and_high_friction_titles.png)
+*Digital vs Physical Format Adoption and Top Negotiation Targets*
+
 ## 📉 Performance Summary
 
 Based on our latest benchmark run on the full dataset:
