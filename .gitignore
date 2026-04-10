@@ -18,13 +18,14 @@ ENV/
 .DS_Store
 .vscode/
 
-## Data / outputs (adjust if you want tracked)
-*.parquet
+## Data / outputs
 *.csv
+!new/master_data/*.csv
+new/master_data/master_data.csv
+new/master_data/Training_Data_Clean.csv
 *.xlsx
 *.db
 *.sqlite
 *.log
 outputs/
-data/
 
