@@ -330,6 +330,12 @@ def render_top_kpis(summary: pd.DataFrame, sampled: pd.DataFrame):
 
 def render_filters(summary_df: pd.DataFrame) -> dict:
     """Renders filters in sidebar and returns the selected values."""
+    if summary_df.empty or "College" not in summary_df.columns:
+        st.sidebar.error("⚠️ Summary data missing or invalid. Please check the data pipeline.")
+        return {
+            "College": "All", "Year": "All", "Department": "All", "Semester": "All", "Format": "All"
+        }
+
     with st.container(border=True):
         st.markdown(
             '<div class="chart-title-bar" style="margin-bottom:12px;">📂 Book Filters</div>',
@@ -338,7 +344,6 @@ def render_filters(summary_df: pd.DataFrame) -> dict:
         college = st.selectbox("College", ["All"] + sorted(summary_df["College"].unique().tolist()), key="f_college")
         year    = st.selectbox("Year",    ["All"] + sorted(summary_df["Year"].astype(str).unique().tolist()),    key="f_year")
         # Department dropdown commented out per user request
-        # dept    = st.selectbox("Department", ["All"] + sorted([str(x) for x in summary_df["Department"].dropna().unique() if str(x).strip() != ""]), key="f_dept")
         dept    = "All"
         sem     = st.selectbox("Semester", ["All"] + sorted(summary_df["Semester"].unique().tolist()), key="f_sem")
         fmt     = st.selectbox("Format", ["All", "Digital", "Physical"], key="f_format")
