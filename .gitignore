@@ -21,6 +21,7 @@ ENV/
 ## Data / outputs
 *.csv
 !new/master_data/*.csv
+!resource/*.csv
 new/master_data/master_data.csv
 new/master_data/Training_Data_Clean.csv
 *.xlsx
