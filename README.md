@@ -18,11 +18,7 @@ graph TD
     F --> I[ROI & Spend Analytics]
 ```
 
-## 🚀 Live Demo
-> [!IMPORTANT]
-> **View Dashboard:** [http://localhost:8502](http://localhost:8502) (Local Development Server)
-
-## 📈 Performance Summary
+## 📉 Performance Summary
 
 Based on our latest benchmark run on the full dataset:
 
@@ -33,17 +29,39 @@ Based on our latest benchmark run on the full dataset:
     *   **Projected Spend**: $268.85M
     *   **Estimated ROI Savings**: $244.20M
 
-## 🔧 Run Locally in 2 Commands
+## ⚙️ First-Time Setup
 
-1. **Pre-process Data**:
-   ```bash
-   ./.venv/bin/python precompute_kpis.py && ./.venv/bin/python enrich_sentiment.py
-   ```
+To run this project on a new system, follow these steps exactly:
 
-2. **Launch Dashboard**:
-   ```bash
-   streamlit run dashboard_app.py --server.port 8502
-   ```
+1.  **Clone & Environment**:
+    ```bash
+    git clone https://github.com/Ashishparmar265/Predictive-procurement-dashboard.git
+    cd Predictive-procurement-dashboard
+    python3 -m venv .venv
+    source .venv/bin/activate  # Windows: .venv\Scripts\activate
+    pip install -r requirements.txt
+    ```
+
+2.  **Data Placement**:
+    Create the folder structure `new/master_data/` and place the following files (not included in Git due to size):
+    *   `master_data.csv`: Place in `new/master_data/`
+    *   `Training_Data_Clean.csv`: Place in `new/master_data/`
+
+---
+
+## 🔧 Run Locally (2 Commands)
+
+Once setup is complete and your environment is activated:
+
+1.  **Pre-process Data**:
+    ```bash
+    python precompute_kpis.py && python enrich_sentiment.py
+    ```
+
+2.  **Launch Dashboard**:
+    ```bash
+    streamlit run dashboard_app.py --server.port 8502
+    ```
 
 ## 🛠️ Tech Stack
 
@@ -59,6 +77,8 @@ Based on our latest benchmark run on the full dataset:
 
 ---
 *Developed for University University Bulk Order & Predictive Procurement Analytics.*
-ime, or whenever the source data changes.
-- If you encounter a `SyntaxWarning: invalid escape sequence` error, ensure all file paths in `.py` files use forward slashes or raw strings.
+
+### 📌 Troubleshooting
+- **Path Issues**: Always use forward slashes (`/`) in path configurations in `.py` files to maintain multi-OS compatibility.
+- **Port Conflict**: If port 8501 is busy, use `--server.port 8502` or any available port.
 
