@@ -1,6 +1,19 @@
-# 📦 University Bulk Order & Predictive Procurement Analytics
+# 📦 University Bulk Order & Predictive Procurement Analytics (V2)
 
-**A high-performance predictive analytics engine that processes over 6.7M procurement records to forecast demand and identify millions in ROI savings.**
+**A high-performance predictive analytics engine that projects behavioral trends for over 15.7M enrollment records to forecast demand and identify massive ROI savings for university systems.**
+
+---
+
+## 🚀 Dashboard Features (V2.1)
+
+The latest version of the dashboard provides a **student-centric** view of procurement data:
+
+*   **Population Projections**: Extrapolates behavioral patterns from a 0.5% sample to a global population of **~600,000 unique students**.
+*   **Executive KPIs**: Real-time tracking of **Total Projected Savings ($M)**, **Avg Savings / Student**, and **Opt-In Capture Ratios**.
+*   **Procurement Prioritization**: Identifies the Top 15 Departments with the highest potential for negotiation ROI.
+*   **Price Elasticity Analysis**: Visualizes how bundle discounts (from -30% to +30%) directly impact student adoption probabilities.
+*   **Format Adoption**: Comparison of **eBook vs Physical** opt-in rates to guide digital transformation.
+*   **Vivid Word Cloud**: A frequency-weighted visualization of high-demand material titles.
 
 ---
 
@@ -8,68 +21,44 @@
 
 ```mermaid
 graph TD
-    A[Raw Master Data .csv] --> B(memory-optimized chunked ETL)
-    B --> C[KPI Summary Cache .csv]
-    A --> D(Sentiment Enrichment)
-    D --> E[Book Sentiment Cache .csv]
-    C & E --> F{Streamlit Dashboard}
-    F --> G[Interactive Visualizations]
-    F --> H[Demand Forecasting]
-    F --> I[ROI & Spend Analytics]
+    A[Population Global KPIs .csv] --> B(Scaling & Projection Engine)
+    C[Behavioral Sample .csv] --> B
+    B --> D{Streamlit V2 Dashboard}
+    D --> E[KPI Cards: $M Savings]
+    D --> F[Department ROI Ranking]
+    D --> G[Price Sensitivity Analysis]
+    D --> H[Dynamic Word Cloud]
 ```
 
-## 🖥️ Dashboard Preview
+## 📉 Impact Summary
 
-![Dashboard KPIs and Spending](images/kpi_and_spending_chart.png)
-*Executive KPIs and Price-Category Spend Breakdown*
+Based on the 15.7M record population analysis:
 
-![Format Split and High Friction Titles](images/format_split_and_high_friction_titles.png)
-*Digital vs Physical Format Adoption and Top Negotiation Targets*
-
-## 📉 Performance Summary
-
-Based on our latest benchmark run on the full dataset:
-
-*   **Total Records Processed**: 6,712,264 units (cleansed)
-*   **Processing Speed**: ~1,340,000 rows per minute (memory-optimized)
-*   **Model Confidence**: 91.1% Reliability Index
-*   **Economic Impact**: 
-    *   **Projected Spend**: $268.85M
-    *   **Estimated ROI Savings**: $244.20M
-
-## ⚙️ First-Time Setup
-
-To run this project on a new system, follow these steps exactly:
-
-1.  **Clone & Environment**:
-    ```bash
-    git clone https://github.com/Ashishparmar265/Predictive-procurement-dashboard.git
-    cd Predictive-procurement-dashboard
-    python3 -m venv .venv
-    source .venv/bin/activate  # Windows: .venv\Scripts\activate
-    pip install -r requirements.txt
-    ```
-
-2.  **Data Placement**:
-    Create the folder structure `new/master_data/` and place the following files (not included in Git due to size):
-    *   `master_data.csv`: Place in `new/master_data/`
-    *   `Training_Data_Clean.csv`: Place in `new/master_data/`
+*   **Total Students Impacted**: ~566,830 (Estimated)
+*   **Total Enrollments Processed**: 15,739,385 records
+*   **Opt-In Accuracy**: 91.1% Model Confidence
+*   **Total Economic Value**: Identifies hundreds of millions in potential university-wide savings.
 
 ---
 
-## 🔧 Run Locally (2 Commands)
+## ⚙️ Quick Start
 
-Once setup is complete and your environment is activated:
+### 1. Setup Environment
+```bash
+git clone https://github.com/Ashishparmar265/Predictive-procurement-dashboard.git
+cd Predictive-procurement-dashboard
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-1.  **Pre-process Data**:
-    ```bash
-    python precompute_kpis.py && python enrich_sentiment.py
-    ```
+### 2. Launch Dashboard
+The dashboard relies on the pre-processed files in the `resource/` directory. No further ETL is required for a standard run.
+```bash
+streamlit run dashboard_app.py --server.port 8502
+```
 
-2.  **Launch Dashboard**:
-    ```bash
-    streamlit run dashboard_app.py --server.port 8502
-    ```
+---
 
 ## 🛠️ Tech Stack
 
@@ -77,16 +66,10 @@ Once setup is complete and your environment is activated:
 |------|---------|
 | **Python 3.12** | Core execution and data processing |
 | **Streamlit** | High-performance interactive web UI |
-| **Pandas** | Memory-optimized chunked data aggregation |
-| **Dask** | Large-scale file handling support |
-| **Plotly** | Advanced technical data visualizations |
-| **Scikit-learn** | Predictive modeling & reliability scoring |
-| **Mermaid** | Component architecture documentation |
+| **Pandas** | Data manipulation and scaling |
+| **Plotly** | Advanced interactive visualizations |
+| **WordCloud** | Text frequency analysis & visualization |
+| **Mermaid** | System architecture documentation |
 
 ---
-*Developed for University University Bulk Order & Predictive Procurement Analytics.*
-
-### 📌 Troubleshooting
-- **Path Issues**: Always use forward slashes (`/`) in path configurations in `.py` files to maintain multi-OS compatibility.
-- **Port Conflict**: If port 8501 is busy, use `--server.port 8502` or any available port.
-
+*Developed for University Bulk Order & Predictive Procurement Analytics.*
