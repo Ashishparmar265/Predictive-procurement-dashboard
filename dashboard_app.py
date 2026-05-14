@@ -1,13 +1,8 @@
 """
 Streamlit dashboard for the
 University Bulk Order & Predictive Procurement Analytics System.
-
-Run with:
-    streamlit run dashboard_app.py
 """
-
 from __future__ import annotations
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -15,9 +10,7 @@ from wordcloud import WordCloud
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-
-from etl_pipeline import load_feature_table, load_summary_kpis
-from feature_engine import train_model, apply_predictions
+import os
 
 st.set_page_config(
     page_title="University Bulk Order & Predictive Procurement Analytics",
@@ -29,85 +22,153 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
     * { font-family: 'Inter', sans-serif; }
 
-    /* Overall background */
+    /* ── Page Background ── */
     [data-testid="stAppViewContainer"] {
-        background: radial-gradient(circle at top left, #1b2b4a 0%, #050b18 55%, #020309 100%);
+        background: #f0f4f8;
     }
     [data-testid="stHeader"] {
-        background: linear-gradient(90deg, #15294b, #274a7b);
-        color: #e5e7eb;
-    }
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0f1e36 0%, #050b18 100%);
-        border-right: 1px solid #1e3a5f;
-    }
-    [data-testid="stSidebar"] label { color: #cbd5e1 !important; }
-    [data-testid="stSidebar"] .stSelectbox > div > div {
-        background-color: #1a2e4a;
-        color: #e2e8f0;
-        border: 1px solid #2d4a6e;
+        background: #1a3a5c;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
 
-    /* Chart section title bar */
-    .chart-title-bar {
-        background: rgba(30, 41, 59, 0.55);
-        border: 1px solid rgba(100, 150, 220, 0.25);
-        border-left: 3px solid #3b82f6;
-        border-radius: 6px;
-        padding: 8px 14px;
-        margin-bottom: 14px;
-        color: #e2e8f0;
-        font-weight: 700;
-        font-size: 0.92rem;
+    /* ── Sidebar ── */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #1a3a5c 0%, #0f2a44 100%);
+        border-right: 3px solid #2563eb;
+    }
+    /* Default sidebar labels (outside filter box) = light blue */
+    [data-testid="stSidebar"] label {
+        color: #93c5fd;
+        font-weight: 600;
+        font-size: 0.8rem;
         letter-spacing: 0.06em;
         text-transform: uppercase;
     }
+    [data-testid="stSidebar"] .stSelectbox > div > div {
+        background-color: rgba(255,255,255,0.08);
+        color: #ffffff;
+        border: 1px solid rgba(147,197,253,0.4);
+        border-radius: 6px;
+    }
+    [data-testid="stSidebar"] .stSelectbox > div > div:focus-within {
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 2px rgba(96,165,250,0.3);
+    }
 
-    /* KPI card base */
+    /* ── Filter Box: all labels and text BLACK ── */
+    [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] label,
+    [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] p,
+    [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] span,
+    [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] div {
+        color: #000000 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] .stSelectbox > div > div {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+
+    /* ── Chart Container Cards ── */
+    .chart-card {
+        background: #ffffff;
+        border: 2px solid #d1dce8;
+        border-radius: 12px;
+        padding: 18px 16px 8px 16px;
+        margin-bottom: 8px;
+        box-shadow: 0 3px 12px rgba(15,40,80,0.08);
+    }
+
+    /* ── Section Title Bar ── */
+    .chart-title-bar {
+        background: transparent;
+        border-bottom: 2px solid #2563eb;
+        padding: 2px 0 8px 0;
+        margin-bottom: 14px;
+        color: #1e3a5f;
+        font-weight: 700;
+        font-size: 0.82rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    /* ── KPI Cards ── */
     .kpi-card {
-        border-radius: 10px;
-        padding: 14px 16px 12px 16px;
-        min-height: 100px;
+        background: #ffffff;
+        border: 2px solid #d1dce8;
+        border-radius: 12px;
+        padding: 22px 16px;
+        text-align: center;
+        transition: all 0.25s ease;
+        box-shadow: 0 3px 12px rgba(15,40,80,0.08);
         position: relative;
         overflow: hidden;
-        margin-bottom: 4px;
     }
-    .kpi-card .kpi-label {
-        font-size: 0.72rem;
-        font-weight: 600;
+    .kpi-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 0; right: 0; height: 3px;
+        background: #2563eb;
+        opacity: 0.6;
+    }
+    .kpi-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 24px rgba(15,40,80,0.15);
+        border-color: #2563eb;
+    }
+    .kpi-card.hero {
+        background: linear-gradient(135deg, #1a3a5c 0%, #1e4d87 100%);
+        border: 2px solid #2563eb;
+        box-shadow: 0 6px 20px rgba(37,99,235,0.25);
+    }
+    .kpi-card.hero::after {
+        background: #60a5fa;
+        opacity: 1;
+    }
+    .kpi-label {
+        color: #64748b;
+        font-size: 0.78rem;
+        font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        opacity: 0.85;
-        margin-bottom: 2px;
+        margin: 0 0 6px 0;
     }
-    .kpi-card .kpi-sub {
-        font-size: 0.72rem;
-        font-weight: 400;
-        opacity: 0.7;
-        margin-top: 4px;
-        line-height: 1.35;
-    }
-    .kpi-card .kpi-value {
-        font-size: 1.55rem;
-        font-weight: 700;
-        letter-spacing: -0.02em;
+    .kpi-card.hero .kpi-label { color: #93c5fd; }
+    .kpi-value {
+        color: #0f172a;
+        font-size: 2rem;
+        font-weight: 800;
+        margin: 0;
         line-height: 1.1;
+        letter-spacing: -0.02em;
     }
-    /* Teal */
-    .kpi-teal { background: linear-gradient(135deg, #0d9488, #0f766e); color: #fff; }
-    /* Blue */
-    .kpi-blue { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; }
-    /* Pink */
-    .kpi-pink { background: linear-gradient(135deg, #db2777, #be185d); color: #fff; }
-    /* Orange */
-    .kpi-orange { background: linear-gradient(135deg, #ea580c, #c2410c); color: #fff; }
+    .kpi-card.hero .kpi-value { color: #ffffff; }
 
-    /* Plotly chart containers */
-    .plot-container { border-radius: 10px; overflow: hidden; }
+    /* ── Dashboard Header ── */
+    .dashboard-header {
+        background: linear-gradient(135deg, #1a3a5c 0%, #1e4d87 100%);
+        border-radius: 12px;
+        padding: 20px 28px;
+        margin-bottom: 20px;
+        box-shadow: 0 6px 20px rgba(15,40,80,0.2);
+        border-left: 5px solid #60a5fa;
+    }
+    .dashboard-header-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: -0.01em;
+    }
+    .dashboard-header-subtitle {
+        font-size: 0.88rem;
+        color: #93c5fd;
+        margin-top: 6px;
+    }
+
+    /* ── Dividers ── */
+    hr { border-color: #d1dce8 !important; border-width: 1.5px !important; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -116,316 +177,277 @@ st.markdown(
 # ── helpers ──────────────────────────────────────────────────────────────────
 
 def _price_bucket(price_series: pd.Series) -> pd.Series:
-    """Assign a price-category label to each row's unit price."""
-    bins   = [0, 50, 80, 120, np.inf]
+    bins   = [-1, 50, 80, 120, np.inf]
     labels = ["<$50", "$50-$80", "$80-$120", ">$120"]
     return pd.cut(price_series, bins=bins, labels=labels, right=True)
 
+CAMPUS_MAPPING = {
+    "249-1": "Bethel University", "251-2": "Campbell University", "252-3": "Providence College",
+    "261-1": "Concordia University", "358-1": "Eastern Kentucky University",
+    "372-1": "Gallaudet University", "39-1": "Lincoln Memorial University",
+    "45-1": "University of New Hampshire", "48-1": "Drexel University",
+    "576-1": "Florida International University", "577-1": "Morgan State University",
+    "611-1": "Hobart and William Smith", "725-1": "Mercer University",
+    "749-1": "Technical College of the Lowcountry", "762-1": "University of Alabama",
+    "784-23": "University of Central Florida", "785-785": "University of Houston",
+    "789-1": "University of North Carolina", "8001-01-01 00:00:00": "Ohio State University",
+    "8201-01-01 00:00:00": "Penn State University", "8232-01-01 00:00:00": "Indiana University",
+    "8255-01-01 00:00:00": "Texas A&M University", "8299-01-01 00:00:00": "University of Michigan",
+    "8304-01-01 00:00:00": "University of Texas", "8309-01-01 00:00:00": "University of Washington",
+    "8358-01-01 00:00:00": "University of Florida", "8372-01-01 00:00:00": "University of Wisconsin",
+    "8388-01-01 00:00:00": "Michigan State University", "8389-01-01 00:00:00": "University of Minnesota",
+    "8393-01-01 00:00:00": "University of Maryland", "8395-01-01 00:00:00": "Georgia State University",
+    "8399-01-01 00:00:00": "University of Georgia", "8414-01-01 00:00:00": "University of Colorado",
+    "8418-01-01 00:00:00": "University of Arizona", "91-1": "Arizona State University"
+}
+
+DEPT_MAPPING = {
+    "ACC": "Accounting", "ADM": "Administration", "AED": "Agricultural Education",
+    "AEM": "Applied Economics", "AFA": "African American Studies", "AGR": "Agriculture",
+    "ANS": "Animal Science", "ANT": "Anthropology", "ANTH": "Anthropology",
+    "APP": "Applied Physics", "ARH": "Art History", "ART": "Art", "ASL": "American Sign Language",
+    "AST": "Astronomy", "ATR": "Athletic Training", "AVN": "Aviation", "BEM": "Business Economics",
+    "BIO": "Biology", "BTO": "Biotechnology", "BUS": "Business", "CCT": "Corporate Communication",
+    "CDF": "Child Development", "CHE": "Chemistry", "CIS": "Computer Info Systems",
+    "CMS": "Communication Studies", "CON": "Construction Management", "COR": "Core Curriculum",
+    "COU": "Counseling", "CPL": "City Planning", "CRE": "Creative Writing", "CRJ": "Criminal Justice",
+    "CSC": "Computer Science", "CSD": "Communication Sciences", "CTE": "Career & Tech Education",
+    "DES": "Design", "DSC": "Data Science", "EAD": "Educational Administration",
+    "ECO": "Economics", "EDC": "Early Childhood Education", "EDD": "Doctor of Education",
+    "EDF": "Educational Foundations", "EDL": "Educational Leadership", "EET": "Electrical Eng Tech",
+    "EGC": "Engineering Computing", "EHS": "Environmental Health", "ELE": "Elementary Education",
+    "EMC": "Emergency Medical Care", "EME": "Emerging Media", "EMG": "Emergency Management",
+    "EMS": "Emergency Medical Services", "ENG": "English", "ENW": "Environmental Writing",
+    "EPY": "Educational Psychology", "ESE": "Exceptional Student Ed", "ESS": "Exercise Science",
+    "ETL": "Educational Technology", "FCC": "Family & Consumer Comm", "FCS": "Family & Consumer Sci",
+    "FIN": "Finance", "FMT": "Film & Media Technologies", "FOR": "Forestry", "FRM": "Family Resource Mgmt",
+    "FSE": "Fire Science Engineering", "GBU": "General Business", "GEO": "Geography",
+    "GER": "Gerontology", "GHT": "Global Health", "GLY": "Geology", "GSD": "Global Studies",
+    "GSO": "Global Sociology", "GST": "Global Studies", "GTO": "Global Tourism",
+    "HCA": "Health Care Administration", "HEA": "Health Education", "HIS": "History",
+    "HLS": "Homeland Security", "HON": "Honors", "HSA": "Health Services Admin",
+    "HSR": "Human Services", "HUM": "Humanities", "IDL": "Interdisciplinary Learning",
+    "INF": "Informatics", "ITP": "Information Tech Pro", "JPL": "Journalism",
+    "LAS": "Latin American Studies", "LGS": "Legal Studies", "LIB": "Library Science",
+    "MAE": "Mathematics Education", "MAT": "Mathematics", "MBA": "Master of Business Admin",
+    "MFE": "Manufacturing Engineering", "MGT": "Management", "MIS": "Mgmt Information Systems",
+    "MKT": "Marketing", "MLS": "Medical Laboratory Science", "MPH": "Master of Public Health",
+    "MSL": "Military Science", "MUE": "Music Education", "MUH": "Music History", "MUS": "Music",
+    "NET": "Networking", "NFA": "Nutrition & Food Arts", "NSC": "Neuroscience",
+    "NUR": "Nursing", "OHO": "Occupational Health", "OSH": "Occupational Safety",
+    "OTS": "Occupational Therapy", "PHI": "Philosophy", "PHY": "Physics", "PLS": "Political Science",
+    "POL": "Politics", "PSY": "Psychology", "PUB": "Public Relations", "REC": "Recreation",
+    "REL": "Religion", "RMI": "Risk Management & Insurance", "SED": "Special Education",
+    "SHO": "Social History", "SJS": "Social Justice Studies", "SOC": "Sociology",
+    "SPA": "Spanish", "SSE": "Social Science Education", "STA": "Statistics", "SWK": "Social Work",
+    "SYD": "System Dynamics", "TEC": "Technology", "TRS": "Translation Studies", "UNP": "Urban Planning",
+    "VTS": "Veterinary Studies", "WGS": "Women & Gender Studies", "WLD": "Wildlife"
+}
 _CHART_LAYOUT = dict(
-    plot_bgcolor="rgba(0,0,0,0)",
-    paper_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="#e2e8f0", family="Inter"),
-    margin=dict(l=10, r=10, t=30, b=10),
+    plot_bgcolor="#ffffff",
+    paper_bgcolor="#ffffff",
+    font=dict(color="#000000", family="Inter", size=12),
+    margin=dict(l=10, r=10, t=36, b=10),
     legend=dict(
-        bgcolor="rgba(15,23,42,0.7)",
-        bordercolor="rgba(100,150,220,0.3)",
+        bgcolor="#f8fafc",
+        bordercolor="#d1dce8",
         borderwidth=1,
-        font=dict(size=11),
+        font=dict(size=11, color="#000000"),
+    ),
+    xaxis=dict(
+        gridcolor="#e2e8f0",
+        linecolor="#cbd5e1",
+        tickfont=dict(color="#000000"),
+        title_font=dict(color="#000000"),
+    ),
+    yaxis=dict(
+        gridcolor="#e2e8f0",
+        linecolor="#cbd5e1",
+        tickfont=dict(color="#000000"),
+        title_font=dict(color="#000000"),
     ),
 )
 
-_STACKED_COLORS = ["#14b8a6", "#3b82f6", "#ec4899", "#f97316", "#8b5cf6", "#22c55e"]
+_STACKED_COLORS = ["#2563eb", "#059669", "#d97706", "#dc2626", "#7c3aed", "#0891b2"]
+_PIE_COLORS    = ["#1d4ed8", "#3b82f6", "#60a5fa", "#93c5fd"]
+
 
 # ── data / model cache ────────────────────────────────────────────────────────
 
 @st.cache_data(show_spinner=False)
-def get_raw_data() -> pd.DataFrame:
-    return load_feature_table()
+def get_summary_data() -> pd.DataFrame:
+    path = "resource/global_kpis.csv"
+    if os.path.exists(path):
+        return pd.read_csv(path)
+    return pd.DataFrame()
 
 @st.cache_data(show_spinner=False)
-def get_summary_data() -> pd.DataFrame:
-    return load_summary_kpis()
-
-@st.cache_resource(show_spinner=False)
-def get_trained_model(df: pd.DataFrame):
-    return train_model(df)
+def get_raw_data() -> pd.DataFrame:
+    path = "resource/dashboard_sample.csv"
+    if os.path.exists(path):
+        return pd.read_csv(path)
+    return pd.DataFrame()
 
 # ── KPI cards ─────────────────────────────────────────────────────────────────
 
-def kpi_card(label: str, value: str, sub: str, css_class: str):
-    st.markdown(
-        f"""
-        <div class="kpi-card {css_class}">
-            <div class="kpi-label">{label}</div>
-            <div class="kpi-value">{value}</div>
-            <div class="kpi-sub">{sub}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-def render_top_kpis(summary_df: pd.DataFrame, sampled_df: pd.DataFrame):
-    """
-    Renders the top KPIs focusing on ROI and Demand volume.
-    """
-    if summary_df.empty:
-        st.warning("No summary data for current filter selection.")
+def render_top_kpis(summary: pd.DataFrame, sampled: pd.DataFrame):
+    if summary.empty or sampled.empty:
+        st.warning("No student data available.")
         return
 
-    # Total Spend and Book Count from pre-computed summary for 100% accuracy
-# ── KPI Deep-Dive Dialogs ──────────────────────────────────────────────────
+    # The sample is only ~0.5% of the data. To show accurate global numbers (>600k students, ~15.7M bundles),
+    # we extrapolate using the exact total bundles from the full population summary.
+    exact_total_bundles = summary["total_bundles"].sum()
+    
+    # The full dataset has 15,739,385 bundles and 566,830 unique students (ratio of ~27.77 bundles/student).
+    # We use this factor to dynamically estimate the unique student count for the current filter.
+    est_total_students = int(exact_total_bundles / 27.767) if exact_total_bundles > 0 else 0
+    
+    # Calculate exact opt-in rates from the representative sample
+    actual_rate = sampled["target"].mean() if "target" in sampled.columns else 0.0
+    pred_rate = sampled["prediction"].mean() if "prediction" in sampled.columns else 0.0
+    
+    # Apply rates to the estimated total students
+    actual_optins = int(est_total_students * actual_rate)
+    actual_rate_pct = actual_rate * 100
 
-@st.dialog("Demand Analysis: Behavioral Drivers")
-def show_demand_detail(df: pd.DataFrame):
-    st.markdown("### 📊 Demand Composition & Sentiment Correlation")
-    col1, col2 = st.columns(2)
-    with col1:
-        # Breakdown by Student Type
-        fig_st = px.pie(df, names="Student_Type", values="Predicted_Demand_Units", 
-                        title="Demand by Enrollment Type", hole=0.4,
-                        color_discrete_sequence=_STACKED_COLORS)
-        fig_st.update_layout(_CHART_LAYOUT, height=300)
-        st.plotly_chart(fig_st, use_container_width=True)
-    with col2:
-        # Sentiment vs Demand correlation
-        sentiment_cols = [c for c in df.columns if "Sentiment" in c]
-        if sentiment_cols:
-            sent_df = df.melt(id_vars=["Predicted_Demand_Units"], value_vars=sentiment_cols)
-            fig_sent = px.box(sent_df, x="variable", y="value", title="Sentiment Distribution",
-                              color_discrete_sequence=["#14b8a6"])
-            fig_sent.update_layout(_CHART_LAYOUT, height=300, xaxis_title="", yaxis_title="Score (1-5)")
-            st.plotly_chart(fig_sent, use_container_width=True)
+    # Additional metrics from sample
+    avg_savings = pd.to_numeric(sampled["potential_savings"], errors="coerce").dropna()
+    avg_savings_per_student = avg_savings[avg_savings > 0].mean() if len(avg_savings) > 0 else 0
     
-    st.info("💡 High sentiment scores in 'Value for Money' strongly correlate with lower opt-out risks.")
+    # Total projected savings across full population (scale sample → population)
+    scale = 15739385 / len(sampled) if len(sampled) > 0 else 1
+    total_projected_savings_m = (avg_savings[avg_savings > 0].sum() * scale) / 1_000_000
 
-@st.dialog("Financial Deep-Dive: Projected Spend")
-def show_spend_detail(df: pd.DataFrame):
-    st.markdown("### 💰 Financial Exposure by Price Tier")
-    # Breakdown by Price Bucket
-    tmp = df.copy()
-    tmp["Price_Category"] = _price_bucket(tmp["Unit_Price"])
-    agg = tmp.groupby("Price_Category")["Projected_Spend"].sum().reset_index()
-    agg["Spend_M"] = agg["Projected_Spend"] / 1e6
-    
-    fig = px.bar(agg, x="Price_Category", y="Spend_M", text="Spend_M",
-                 title="Total Projected Spend by Price Category",
-                 color_discrete_sequence=["#3b82f6"])
-    fig.update_traces(texttemplate="$%{text:.2f}M", textposition="outside")
-    fig.update_layout(_CHART_LAYOUT, height=350, yaxis_title="Spend ($M)")
-    st.plotly_chart(fig, use_container_width=True)
-    
-    st.warning("⚠️ Products in the '>$120' category represent 65% of total financial risk.")
+    ratio_str = f"{actual_optins:,} / {est_total_students:,}"
 
-@st.dialog("ROI Investigation: Potential Savings")
-def show_roi_detail(df: pd.DataFrame):
-    st.markdown("### 📈 Savings Potential vs. Format Efficiency")
-    # Format Analysis: Use accurate Gross Spend * OptOutRisk to avoid compounding errors
-    tmp = df.copy()
-    tmp["Gross_Spend"] = tmp.get("Predicted_Demand_Units", 1) * tmp.get("Unit_Price", 100)
-    tmp["Savings"] = tmp["Gross_Spend"] * tmp["Opt_Out_Probability"]
-    
-    agg = tmp.groupby("Format").agg(
-        Potential_Savings=("Savings", lambda x: x.sum() / 1e6),
-        Actual_Spend=("Projected_Spend", lambda x: x.sum() / 1e6)
-    ).reset_index()
-    
-    fig = px.bar(agg, x="Format", y=["Actual_Spend", "Potential_Savings"], 
-                 barmode="group", title="Spend vs potential Savings by Format",
-                 color_discrete_map={"Actual_Spend": "#1e293b", "Potential_Savings": "#10b981"})
-    fig.update_layout(_CHART_LAYOUT, height=350, yaxis_title="USD ($M)")
-    st.plotly_chart(fig, use_container_width=True)
-    st.success("✅ Shifting 10% more volume to Digital formats could reclaim $1.2M in potential savings.")
+    st.info(f"\U0001f4ca **Population Projection:** Out of an estimated **{est_total_students:,}** total students, **{actual_optins:,}** opted in ({actual_rate_pct:.1f}%).")
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.markdown(f"""
+        <div class='kpi-card hero'>
+            <p class='kpi-label'>Opt-In Ratio (Actual)</p>
+            <p class='kpi-value' style='font-size: 1.5rem;'>{ratio_str}</p>
+            <p style='margin:0; font-size:0.9rem; font-weight:700; color:#ffffff;'>({actual_rate_pct:.1f}%)</p>
+        </div>
+        """, unsafe_allow_html=True)
+    with c2:
+        st.markdown(f"""
+        <div class='kpi-card'>
+            <p class='kpi-label'>Total Students (Est.)</p>
+            <p class='kpi-value' style='color:#0f172a;'>{est_total_students:,.0f}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    with c3:
+        st.markdown(f"""
+        <div class='kpi-card'>
+            <p class='kpi-label'>Avg Savings / Student</p>
+            <p class='kpi-value' style='color:#059669;'>${avg_savings_per_student:,.2f}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    with c4:
+        st.markdown(f"""
+        <div class='kpi-card'>
+            <p class='kpi-label'>Total Projected Savings</p>
+            <p class='kpi-value' style='color:#7c3aed;'>${total_projected_savings_m:,.1f}M</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ── Sidebar Components ──────────────────────────────────────────────────────
 
-def render_technical_accuracy_gauge(accuracy: float):
-    """Modern technical gauge for model reliability."""
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=accuracy * 100,
-        number={'suffix': "%", 'font': {'color': "#e2e8f0", 'size': 32}},
-        title={'text': "SYSTEM RELIABILITY<br><span style='font-size:0.8em;color:gray'>Model Confidence Index</span>", 'font': {'color': '#e2e8f0', 'size': 14}},
-        gauge={
-            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "gray"},
-            'bar': {'color': "#3b82f6"},
-            'bgcolor': "rgba(0,0,0,0)",
-            'borderwidth': 2,
-            'bordercolor': "rgba(100,150,220,0.2)",
-            'steps': [
-                {'range': [0, 70], 'color': 'rgba(239, 68, 68, 0.2)'},
-                {'range': [70, 90], 'color': 'rgba(234, 179, 8, 0.2)'},
-                {'range': [90, 100], 'color': 'rgba(16, 185, 129, 0.2)'}
-            ],
-            'threshold': {
-                'line': {'color': "#10b981", 'width': 4},
-                'thickness': 0.75,
-                'value': 93.2
-            }
-        }
-    ))
-    fig.update_layout(
-        height=220,
-        margin=dict(l=25, r=25, t=50, b=10),
-        paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#e2e8f0", family="Inter")
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-
-def render_top_kpis(summary: pd.DataFrame, sampled: pd.DataFrame):
-    """Styled KPI cards with trigger buttons for detail dialogs."""
-    # Summary Totals (100% Accurate)
-    total_demand = summary["Book_Count"].sum()
-    total_spend  = summary["Total_Spend"].sum()
-    
-    # ML ROI (on Sampled): Use weighted average instead of arbitrary mean for minimum error
-    if not sampled.empty:
-        sampled_gross = (sampled.get("Predicted_Demand_Units", 1) * sampled.get("Unit_Price", 100))
-        gross_sum = sampled_gross.sum()
-        if gross_sum > 0:
-            weighted_optout_risk = (sampled_gross * sampled["Opt_Out_Probability"]).sum() / gross_sum
-        else:
-            weighted_optout_risk = 0.0
-    else:
-        weighted_optout_risk = 0.0
-        
-    potential_savings = total_spend * weighted_optout_risk
-    
-    c1, c2, c3 = st.columns(3)
-    
-    # Demand Card
-    with c1:
-        st.markdown(f"""
-        <div style='background:rgba(20,184,166,0.1); border:1px solid rgba(20,184,166,0.25); border-radius:12px; padding:15px; text-align:center;'>
-            <p style='color:#94a3b8; margin:0; font-size:0.85rem; font-weight:600;'>TOTAL BOOK DEMAND</p>
-            <p style='color:#14b8a6; font-size:1.55rem; font-weight:800; margin:5px 0;'>{total_demand:,.0f}</p>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Investigate Demand", key="btn_demand", use_container_width=True):
-            show_demand_detail(sampled)
-
-    # Spend Card
-    with c2:
-        st.markdown(f"""
-        <div style='background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.25); border-radius:12px; padding:15px; text-align:center;'>
-            <p style='color:#94a3b8; margin:0; font-size:0.85rem; font-weight:600;'>TOTAL PROJECTED SPEND</p>
-            <p style='color:#3b82f6; font-size:1.55rem; font-weight:800; margin:5px 0;'>${total_spend/1e6:,.2f}M</p>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Analyze Financials", key="btn_spend", use_container_width=True):
-            show_spend_detail(sampled)
-
-    # ROI Card
-    with c3:
-        st.markdown(f"""
-        <div style='background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:12px; padding:15px; text-align:center;'>
-            <p style='color:#94a3b8; margin:0; font-size:0.85rem; font-weight:600;'>POTENTIAL SAVINGS (ROI)</p>
-            <p style='color:#10b981; font-size:1.55rem; font-weight:800; margin:5px 0;'>${potential_savings/1e6:,.2f}M</p>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Maximize ROI", key="btn_roi", use_container_width=True):
-            show_roi_detail(sampled)
+# Accuracy gauge removed as per request
 
 # ── sidebar filters ────────────────────────────────────────────────────────────
 
+_LABEL_STYLE = "color:#000000;font-weight:700;font-size:0.78rem;letter-spacing:0.06em;text-transform:uppercase;margin:8px 0 2px 0;display:block;"
+
+def _filter_label(text: str):
+    """Render a bold black label above a selectbox."""
+    st.markdown(f'<span style="{_LABEL_STYLE}">{text}</span>', unsafe_allow_html=True)
+
 def render_filters(summary_df: pd.DataFrame) -> dict:
-    """Renders filters in sidebar and returns the selected values."""
-    if summary_df.empty or "College" not in summary_df.columns:
-        st.sidebar.error("⚠️ Summary data missing or invalid. Please check the data pipeline.")
-        return {
-            "College": "All", "Year": "All", "Department": "All", "Semester": "All", "Format": "All"
-        }
+    if summary_df.empty or "campus_code" not in summary_df.columns:
+        return {"Campus": "All", "Adoption Type": "All", "Department": "All", "Year": "All", "Semester": "All"}
 
     with st.container(border=True):
         st.markdown(
             '<div class="chart-title-bar" style="margin-bottom:12px;">📂 Book Filters</div>',
             unsafe_allow_html=True,
         )
-        college = st.selectbox("College", ["All"] + sorted(summary_df["College"].unique().tolist()), key="f_college")
-        year    = st.selectbox("Year",    ["All"] + sorted(summary_df["Year"].astype(str).unique().tolist()),    key="f_year")
-        # Department dropdown commented out per user request
-        dept    = "All"
-        sem     = st.selectbox("Semester", ["All"] + sorted(summary_df["Semester"].unique().tolist()), key="f_sem")
-        fmt     = st.selectbox("Format", ["All", "Digital", "Physical"], key="f_format")
+
+        # Map codes to full names in selectboxes for better UI
+        campus_opts = ["All"] + sorted(summary_df["campus_code"].dropna().unique().astype(str).tolist())
+        _filter_label("Campus")
+        campus = st.selectbox(
+            "Campus", campus_opts, key="f_campus", 
+            label_visibility="collapsed", 
+            format_func=lambda x: CAMPUS_MAPPING.get(str(x), x) if x != "All" else "All Campuses"
+        )
+        df_1 = summary_df if campus == "All" else summary_df[summary_df["campus_code"].astype(str) == campus]
+
+        atype_opts = ["All"] + sorted(df_1["adoption_type"].dropna().unique().tolist())
+        _filter_label("Adoption Type")
+        atype = st.selectbox("Adoption Type", atype_opts, key="f_atype", label_visibility="collapsed")
+        df_2 = df_1 if atype == "All" else df_1[df_1["adoption_type"] == atype]
+
+        dept_opts = ["All"] + sorted(df_2["dept_code"].dropna().unique().astype(str).tolist())
+        _filter_label("Department")
+        dept = st.selectbox(
+            "Department", dept_opts, key="f_dept", 
+            label_visibility="collapsed", 
+            format_func=lambda x: DEPT_MAPPING.get(str(x), x) if x != "All" else "All Departments"
+        )
+        df_3 = df_2 if dept == "All" else df_2[df_2["dept_code"].astype(str) == dept]
+
+        if "term_year" in df_3.columns:
+            year_opts = ["All"] + sorted(df_3["term_year"].dropna().unique().tolist())
+        else:
+            year_opts = ["All"]
+        _filter_label("Year")
+        year = st.selectbox("Year", year_opts, key="f_year", label_visibility="collapsed")
+        df_4 = df_3 if year == "All" else df_3[df_3["term_year"] == year]
+
+        if "term_code" in df_4.columns:
+            sem_opts = ["All"] + sorted(df_4["term_code"].dropna().unique().tolist())
+        else:
+            sem_opts = ["All"]
+        _filter_label("Semester")
+        sem = st.selectbox("Semester", sem_opts, key="f_sem", label_visibility="collapsed")
 
     return {
-        "College": college,
-        "Year": year,
+        "Campus": campus,
+        "Adoption Type": atype,
         "Department": dept,
-        "Semester": sem,
-        "Format": fmt
+        "Year": year,
+        "Semester": sem
     }
 
-def apply_filters(df: pd.DataFrame, filters: dict, is_summary: bool = True) -> pd.DataFrame:
-    """Applies filters to either summary or sampled dataframe."""
+def apply_filters(df: pd.DataFrame, filters: dict) -> pd.DataFrame:
     mask = pd.Series(True, index=df.index)
-    
-    # Handle column name differences
-    dept_col = "Department" if "Department" in df.columns else "Dept_Code"
-    year_col = "Year"
-    
-    if filters["College"] != "All": mask &= df["College"] == filters["College"]
-    if filters["Year"] != "All": mask &= df[year_col].astype(str) == filters["Year"]
-    if filters["Department"] != "All": mask &= df[dept_col] == filters["Department"]
-    if filters["Semester"] != "All": mask &= df["Semester"] == filters["Semester"]
-    if filters["Format"] != "All": mask &= df["Format"] == filters["Format"]
-    
+    if filters.get("Campus", "All") != "All" and "campus_code" in df.columns: 
+        mask &= df["campus_code"].astype(str) == str(filters["Campus"])
+    if filters.get("Adoption Type", "All") != "All" and "adoption_type" in df.columns: 
+        mask &= df["adoption_type"] == filters["Adoption Type"]
+    if filters.get("Department", "All") != "All" and "dept_code" in df.columns: 
+        mask &= df["dept_code"].astype(str) == str(filters["Department"])
+    if filters.get("Year", "All") != "All" and "term_year" in df.columns: 
+        mask &= df["term_year"] == filters["Year"]
+    if filters.get("Semester", "All") != "All" and "term_code" in df.columns: 
+        mask &= df["term_code"] == filters["Semester"]
     return df[mask].copy()
-
-# ── model accuracy gauge ───────────────────────────────────────────────────────
-
-def render_accuracy_gauge(acc: float):
-    with st.container(border=True):
-        st.markdown(
-            '<div class="chart-title-bar" style="margin-bottom:10px;">🎯 Model Accuracy</div>',
-            unsafe_allow_html=True,
-        )
-        value = acc * 100
-        angle = 180 - (value * 1.8)
-        rad   = np.radians(angle)
-        xc, yc, r = 0.5, 0.42, 0.38
-        x = xc + r * np.cos(rad)
-        y = yc + r * np.sin(rad)
-
-        fig = go.Figure()
-        fig.add_trace(go.Indicator(
-            mode="gauge+number", value=value,
-            domain={"x": [0, 1], "y": [0, 1]},
-            number={"font": {"size": 38, "color": "#ffffff", "family": "Inter"}, "suffix": "%"},
-            gauge={
-                "axis": {"range": [0, 100], "tickwidth": 2, "tickcolor": "#ffffff", "nticks": 10},
-                "bar": {"color": "rgba(0,0,0,0)"},
-                "bgcolor": "rgba(255,255,255,0.05)",
-                "borderwidth": 0,
-                "steps": [
-                    {"range": [0, 60],  "color": "#dc2626"},
-                    {"range": [60, 85], "color": "#f59e0b"},
-                    {"range": [85, 100],"color": "#22c55e"},
-                ],
-            },
-        ))
-        fig.add_shape(type="line", x0=xc, y0=yc, x1=x, y1=y, line=dict(color="#00d4ff", width=6))
-        fig.add_shape(type="circle", x0=xc-.04, y0=yc-.04, x1=xc+.04, y1=yc+.04, fillcolor="#1e293b", line_color="#00d4ff", line_width=2)
-        fig.add_shape(type="circle", x0=xc-.015, y0=yc-.015, x1=xc+.015, y1=yc+.015, fillcolor="#ffffff", line_color="#ffffff")
-        fig.update_layout(height=200, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor="rgba(0,0,0,0)", font={"color": "#ffffff", "family": "Inter"})
-        st.plotly_chart(fig, use_container_width=True)
-        st.markdown(
-            f"<p style='margin-top:-18px;font-size:0.75rem;color:#94a3b8;text-align:center;'>RF Model · <b>{acc*100:.1f}%</b> accuracy</p>",
-            unsafe_allow_html=True,
-        )
 
 # ── chart helpers ──────────────────────────────────────────────────────────────
 
 def render_header():
     st.markdown(
         """
-        <div style="background:rgba(30,41,59,0.55);border:1px solid rgba(100,150,220,0.25);border-radius:10px;
-                    padding:18px 24px;margin-bottom:18px;">
-            <div style="font-size:1.5rem;font-weight:700;color:#f1f5f9;">
-                📚 University Bulk Order &amp; Predictive Procurement Analytics
+        <div class="dashboard-header">
+            <div class="dashboard-header-title">
+                🎓 Student Bundle Opt-In Analytics
             </div>
-            <div style="font-size:0.85rem;color:#94a3b8;margin-top:4px;">
-                ML-driven demand forecasting · price sensitivity · format adoption · risk segmentation
+            <div class="dashboard-header-subtitle">
+                PySpark ML Engine &nbsp;·&nbsp; FD, RQ &amp; EO Adoption Models &nbsp;·&nbsp; Predictive Student Opt-In Intelligence
             </div>
         </div>
         """,
@@ -435,337 +457,464 @@ def render_header():
 def _section(title: str):
     st.markdown(f'<div class="chart-title-bar">{title}</div>', unsafe_allow_html=True)
 
-# Row 2 ── Donut + Distribution histogram ──────────────────────────────────────
-
-def render_format_preference_donut(df: pd.DataFrame):
-    _section("Format Preference (Digital vs Physical)")
-    if df.empty:
-        st.info("No data.")
-        return
-    agg = df.groupby("Format")["Predicted_Demand_Units"].sum().reset_index()
-    fig = go.Figure(go.Pie(
-        labels=agg["Format"],
-        values=agg["Predicted_Demand_Units"],
-        hole=0.55,
-        textinfo="label+percent",
-        marker=dict(colors=["#3b82f6", "#ec4899"]),
-        textfont=dict(size=12, color="#e2e8f0"),
-    ))
-    fig.update_layout(
-        height=300,
-        showlegend=True,
-        legend=dict(orientation="v", bgcolor="rgba(15,23,42,0.7)", bordercolor="rgba(100,150,220,0.3)", borderwidth=1, font=dict(size=11, color="#e2e8f0")),
-        paper_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=10, r=10, t=10, b=10),
-        font=dict(color="#e2e8f0", family="Inter"),
-    )
-    fig.add_annotation(text="Format<br>Split", x=0.5, y=0.5, showarrow=False, font=dict(size=14, color="#e2e8f0", family="Inter"))
-    st.plotly_chart(fig, use_container_width=True)
-
-def render_price_distribution(df: pd.DataFrame):
-    _section("Distribution of Unit Price over Ranges")
-    if df.empty:
+def render_ebook_vs_physical_optin(df: pd.DataFrame):
+    _section("eBook vs Physical Book Opt-In Rate")
+    if df.empty or "is_ebook" not in df.columns:
         st.info("No data.")
         return
     tmp = df.copy()
-    tmp["Price_Category"] = _price_bucket(tmp["Unit_Price"])
-    tmp["Predicted_Demand_Units"] = tmp.get("Predicted_Demand_Units", 1)
-    agg = tmp.groupby("Price_Category", observed=True)["Predicted_Demand_Units"].sum().reset_index(name="Count")
-    cat_order = ["<$50", "$50-$80", "$80-$120", ">$120"]
-    agg["Price_Category"] = pd.Categorical(agg["Price_Category"], categories=cat_order, ordered=True)
-    agg = agg.sort_values("Price_Category")
-    fig = px.bar(
-        agg, x="Price_Category", y="Count",
-        color="Price_Category",
-        color_discrete_map={"<$50": "#14b8a6", "$50-$80": "#3b82f6", "$80-$120": "#ec4899", ">$120": "#f97316"},
-        text="Count",
-    )
-    fig.update_traces(texttemplate="%{text:,.0f}", textposition="outside", textfont_color="#e2e8f0")
-    fig.update_layout(
-        height=300, showlegend=False,
-        xaxis_title="Price Range", yaxis_title="Record Count",
-        **_CHART_LAYOUT,
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-# Row 3 ── Price category bar charts ──────────────────────────────────────────
-
-def render_price_cat_spend(df: pd.DataFrame):
-    _section("Price-Category-wise Projected Spend")
-    if df.empty:
-        st.info("No data.")
-        return
-    tmp = df.copy()
-    tmp["Price_Category"] = _price_bucket(tmp["Unit_Price"])
-    tmp["Gross_Spend"] = tmp.get("Predicted_Demand_Units", 1) * tmp.get("Unit_Price", 100)
-    agg = tmp.groupby("Price_Category", observed=True)["Gross_Spend"].sum().reset_index()
-    cat_order = ["<$50", "$50-$80", "$80-$120", ">$120"]
-    agg["Price_Category"] = pd.Categorical(agg["Price_Category"], categories=cat_order, ordered=True)
-    agg = agg.sort_values("Price_Category")
-    agg["Projected_Spend_M"] = agg["Gross_Spend"] / 1e6
-    fig = px.bar(
-        agg, x="Price_Category", y="Projected_Spend_M",
-        color="Price_Category",
-        color_discrete_map={"<$50": "#14b8a6", "$50-$80": "#3b82f6", "$80-$120": "#ec4899", ">$120": "#f97316"},
-        text="Projected_Spend_M",
-    )
-    fig.update_traces(texttemplate="$%{text:.2f}M", textposition="outside", textfont_color="#e2e8f0")
-    fig.update_layout(
-        height=320, showlegend=False,
-        xaxis_title="Price Category", yaxis_title="Total Projected Spend ($M)",
-        **_CHART_LAYOUT,
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-
-# Row 4 ── Term-wise charts ────────────────────────────────────────────────────
-
-def render_term_spend_ratio_by_price(df: pd.DataFrame):
-    _section("Ratio of Term-wise Spend by Price Category")
-    if df.empty:
-        st.info("No data.")
-        return
-    tmp = df.copy()
-    tmp["Price_Category"] = _price_bucket(tmp["Unit_Price"])
-    tmp["Gross_Spend"] = tmp.get("Predicted_Demand_Units", 1) * tmp.get("Unit_Price", 100)
-    agg = tmp.groupby(["Term", "Price_Category"], observed=True)["Gross_Spend"].sum().reset_index()
-    agg["Projected_Spend_M"] = agg["Gross_Spend"] / 1e6
-
-    # Limit to top-10 terms by total spend for readability
-    top_terms = agg.groupby("Term")["Projected_Spend_M"].sum().nlargest(10).index
-    agg = agg[agg["Term"].isin(top_terms)]
+    tmp["Format"] = tmp["is_ebook"].astype(str).map({"1": "eBook", "0": "Physical Book", "1.0": "eBook", "0.0": "Physical Book"}).fillna("Unknown")
+    agg = tmp.groupby("Format")["prob_optin"].agg(["mean", "count"]).reset_index()
+    agg.columns = ["Format", "Avg Opt-In", "Count"]
+    agg["Avg Opt-In %"] = agg["Avg Opt-In"] * 100
 
     fig = px.bar(
-        agg, x="Term", y="Projected_Spend_M", color="Price_Category",
-        barmode="relative",
-        color_discrete_map={"<$50": "#14b8a6", "$50-$80": "#3b82f6", "$80-$120": "#ec4899", ">$120": "#f97316"},
+        agg, x="Format", y="Avg Opt-In %",
+        color="Format",
+        color_discrete_map={"eBook": "#2563eb", "Physical Book": "#059669"},
+        text="Avg Opt-In %",
+        labels={"Format": "Book Format", "Avg Opt-In %": "Avg Opt-In Rate (%)"},
     )
-    fig.update_layout(
-        height=340,
-        xaxis_title="Term", yaxis_title="Projected Spend ($M)",
-        xaxis_tickangle=45,
-        **_CHART_LAYOUT,
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    fig.update_traces(texttemplate="%{text:.1f}%", textposition="outside", textfont_color="#000000", width=0.4)
+    fig.update_layout(height=300, showlegend=False,
+                      xaxis_title="Book Format", yaxis_title="Avg Opt-In Rate (%)",
+                      **_CHART_LAYOUT)
+    st.plotly_chart(fig, width="stretch")
 
-def render_term_spend_by_adoption(df: pd.DataFrame):
-    _section("Term-wise Spend by Adoption Type")
-    if df.empty:
+def render_adoption_type_optin(df: pd.DataFrame):
+    _section("Opt-In Rate by Adoption Model (FD / RQ / EO)")
+    if df.empty or "adoption_type" not in df.columns:
         st.info("No data.")
         return
+    agg = (
+        df.groupby("adoption_type")["prob_optin"]
+        .agg(["mean", "count"])
+        .reset_index()
+        .rename(columns={"mean": "Avg Opt-In", "count": "Students"})
+    )
+    agg["Avg Opt-In %"] = agg["Avg Opt-In"] * 100
+    fig = px.bar(
+        agg, x="adoption_type", y="Avg Opt-In %",
+        color="adoption_type", color_discrete_sequence=_STACKED_COLORS,
+        text="Avg Opt-In %",
+        labels={"adoption_type": "Adoption Model"},
+    )
+    fig.update_traces(texttemplate="%{text:.1f}%", textposition="outside", textfont_color="#000000")
+    fig.update_layout(height=320, showlegend=False,
+                      xaxis_title="Adoption Model", yaxis_title="Avg Opt-In Rate (%)",
+                      **_CHART_LAYOUT)
+    st.plotly_chart(fig, width="stretch")
+
+def render_student_type_adoption(df: pd.DataFrame):
+    _section("Expected Opt-In Rate by Student Enrollment Status")
+    if df.empty:
+        return
     tmp = df.copy()
-    tmp["Gross_Spend"] = tmp.get("Predicted_Demand_Units", 1) * tmp.get("Unit_Price", 100)
-    agg = tmp.groupby(["Term", "Student_Type"])["Gross_Spend"].sum().reset_index()
-    agg["Projected_Spend_M"] = agg["Gross_Spend"] / 1e6
+    # Only Full-Time and Part-Time (exclude Half-Time / 0.25)
+    tmp['Status'] = tmp['student_type_score'].map({1.0: 'Full-Time', 0.5: 'Part-Time'})
+    tmp = tmp[tmp['Status'].notna()]
+    if tmp.empty:
+        st.info("No enrollment status data.")
+        return
+    agg = tmp.groupby("Status")["prob_optin"].mean().reset_index()
+    fig = px.bar(agg, x="Status", y="prob_optin", color="Status",
+                 color_discrete_map={"Full-Time": "#2563eb", "Part-Time": "#059669"})
+    fig.update_traces(texttemplate="%{y:.1%}", textposition="outside", textfont_color="#000000",
+                      text=agg["prob_optin"], width=0.35)
+    fig.update_layout(height=320, showlegend=False,
+                      yaxis_title="Avg Probability of Opt-In", **_CHART_LAYOUT)
+    fig.update_yaxes(tickformat=".0%")
+    st.plotly_chart(fig, width="stretch")
 
-    top_terms = agg.groupby("Term")["Projected_Spend_M"].sum().nlargest(10).index
-    agg = agg[agg["Term"].isin(top_terms)]
-
-    fig = px.line(
-        agg, x="Term", y="Projected_Spend_M", color="Student_Type",
-        markers=True,
+def render_scatter_price_vs_prob(df: pd.DataFrame):
+    _section("Actual Price vs Opt-In Probability")
+    if df.empty:
+        return
+    sample = df.sample(min(2000, len(df)), random_state=42)
+    sample['Status'] = sample['student_type_score'].map({1.0: 'Full-Time', 0.5: 'Part-Time', 0.25: 'Half-Time'})
+    sample['Status'] = sample['Status'].fillna('Unknown')
+    
+    fig = px.scatter(
+        sample, x="actual_price", y="prob_optin", color="Status", opacity=0.6,
         color_discrete_sequence=_STACKED_COLORS,
-        line_shape="spline",
+        labels={"actual_price": "Actual Price ($)", "prob_optin": "Opt-In Probability"}
     )
-    fig.update_traces(line=dict(width=2.5))
-    fig.update_layout(
-        height=340,
-        xaxis_title="Term", yaxis_title="Projected Spend ($M)",
-        xaxis_tickangle=45,
-        **_CHART_LAYOUT,
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-# Row 5 ── Feature importance + High-friction titles ──────────────────────────
+    fig.update_layout(height=360, **_CHART_LAYOUT)
+    st.plotly_chart(fig, width="stretch")
 
 
-def render_high_friction_titles(df: pd.DataFrame):
-    _section("Top 10 High-Friction Titles (Negotiation Targets)")
-    if df.empty:
+def render_optin_vs_optout_by_model(df: pd.DataFrame):
+    _section("Opted-In vs Opted-Out Students by Adoption Model")
+    if df.empty or "adoption_type" not in df.columns or "target" not in df.columns:
+        st.info("No data.")
         return
-    agg = df.groupby("Title")["Opt_Out_Probability"].mean().sort_values(ascending=False).head(10).reset_index()
-    agg["Short_Title"] = agg["Title"].astype(str).apply(lambda x: x[:25] + "..." if len(x) > 25 else x)
-    fig = px.bar(
-        agg, x="Opt_Out_Probability", y="Short_Title", orientation="h",
-        color="Opt_Out_Probability", color_continuous_scale="Reds",
-        text="Opt_Out_Probability",
-    )
-    fig.update_traces(texttemplate="%{text:.1%}", textposition="outside", textfont_color="#e2e8f0")
-    fig.update_layout(height=320, xaxis_title="Avg Opt-Out Risk", yaxis_title="", coloraxis_showscale=False, **_CHART_LAYOUT)
-    st.plotly_chart(fig, use_container_width=True)
-
-# Row 6 ── Top-10 Department bar + Word cloud ─────────────────────────────────
-
-def render_publisher_savings_opportunity(df: pd.DataFrame):
-    _section("Top 10 Publishers/Authors by Potential Savings")
-    if df.empty:
-        return
-    # Calculate savings per publisher to negotiate bulk vendor discounts
-    agg = df.groupby("Publisher").apply(
-        lambda x: (x.get("Predicted_Demand_Units", 1) * x.get("Unit_Price", 100) * x["Opt_Out_Probability"]).sum()
-    ).nlargest(10).reset_index(name="Potential_Savings")
+    tmp = df.copy()
+    tmp["Decision"] = tmp["target"].astype(str).map({"1": "Opted In", "0": "Opted Out"}).fillna("Unknown")
+    agg = tmp.groupby(["adoption_type", "Decision"]).size().reset_index(name="Count")
+    
+    # Scale to estimated population
+    scale_factor = 15739385 / len(df) / 27.767 if len(df) > 0 else 1
+    agg["Est. Students"] = (agg["Count"] * scale_factor).astype(int)
     
     fig = px.bar(
-        agg.sort_values("Potential_Savings"), x="Potential_Savings", y="Publisher",
-        orientation="h", color="Potential_Savings",
-        color_continuous_scale="Viridis", text="Potential_Savings",
+        agg, x="adoption_type", y="Est. Students", color="Decision",
+        color_discrete_map={"Opted In": "#059669", "Opted Out": "#dc2626"},
+        barmode="group",
+        text="Est. Students",
+        labels={"adoption_type": "Adoption Model", "Est. Students": "Est. Students"},
     )
-    fig.update_traces(texttemplate="$%{text:,.0f}", textposition="outside", textfont_color="#e2e8f0")
-    fig.update_layout(height=380, xaxis_title="Potential Savings ($)", yaxis_title="Publisher/Author", coloraxis_showscale=False, **_CHART_LAYOUT)
-    st.plotly_chart(fig, use_container_width=True)
+    fig.update_traces(texttemplate="%{text:,.0f}", textposition="outside", textfont_color="#000000")
+    fig.update_layout(
+        height=320,
+        xaxis_title="Adoption Model",
+        yaxis_title="Estimated Students",
+        **_CHART_LAYOUT
+    )
+    st.plotly_chart(fig, width="stretch")
 
-# Row 7 ── Scatter + Treemap ─────────────────────────────────────────────────
-
-def render_price_vs_optout_scatter(df: pd.DataFrame):
-    """Scatter: Unit Price vs Opt-Out Probability, coloured by Student Status."""
-    _section("Price vs Opt-Out Probability (Scatter — Part-time vs Full-time)")
-    if df.empty:
+def render_top_dept_optin(df: pd.DataFrame):
+    _section("Top 15 Departments by Opt-In Rate")
+    if df.empty or "dept_code" not in df.columns:
         st.info("No data.")
         return
-    sample = df.sample(min(8_000, len(df)), random_state=42)
-    fig = px.scatter(
-        sample, x="Unit_Price", y="Opt_Out_Probability",
-        color="Student_Type",
-        symbol="Format",
-        color_discrete_map={"Full-Time": "#14b8a6", "Part-Time": "#ec4899"},
-        opacity=0.55, size_max=6,
-        hover_data=["Title", "Dept_Code", "Format"],
-        labels={"Unit_Price": "Unit Price ($)", "Opt_Out_Probability": "Opt-Out Probability"},
+    agg = (
+        df.groupby("dept_code")["prob_optin"]
+        .agg(["mean", "count"])
+        .reset_index()
+        .rename(columns={"mean": "Avg Opt-In", "count": "Sample_Students"})
     )
-    fig.update_traces(marker=dict(size=5))
-    fig.update_layout(height=360, xaxis_title="Unit Price ($)", yaxis_title="Opt-Out Probability", **_CHART_LAYOUT)
-    st.plotly_chart(fig, use_container_width=True)
+    agg = agg[agg["Sample_Students"] >= max(3, len(df) // 5000)].copy()
+    if agg.empty:
+        st.info("Not enough data per department.")
+        return
+    
+    # Scale sample students to population
+    agg["Est_Students"] = (agg["Sample_Students"] * (15739385 / 78698)) / 27.767
+    agg["Est_Students"] = agg["Est_Students"].astype(int)
+    
+    # Map dept code to full name
+    agg["Dept Name"] = agg["dept_code"].astype(str).map(lambda x: DEPT_MAPPING.get(x, x))
+    
+    agg["Avg Opt-In %"] = agg["Avg Opt-In"] * 100
+    top15 = agg.nlargest(15, "Avg Opt-In").sort_values("Avg Opt-In", ascending=True)
+    top15["label"] = top15["Dept Name"] + "  (Est. n=" + top15["Est_Students"].astype(str) + ")"
+    fig = px.bar(
+        top15, x="Avg Opt-In %", y="label", orientation="h",
+        color="Avg Opt-In %", color_continuous_scale="Blues", text="Avg Opt-In %",
+    )
+    fig.update_traces(texttemplate="%{text:.1f}%", textposition="outside", textfont_color="#000000")
+    top15_layout = _CHART_LAYOUT.copy()
+    top15_layout["margin"] = dict(l=200, r=40, t=20, b=20)
+    fig.update_layout(height=480, xaxis_title="Avg Opt-In Rate (%)", yaxis_title="",
+                      coloraxis_showscale=False, **top15_layout)
+    st.plotly_chart(fig, width="stretch")
 
+def render_optin_by_term(df: pd.DataFrame):
+    _section("Opt-In Rate Trend by Term")
+    if df.empty or "term_code" not in df.columns or "term_year" not in df.columns:
+        st.info("Missing term data.")
+        return
+    tmp = df.copy()
+    tmp["Term"] = (tmp["term_code"].astype(str) + " '" +
+                   tmp["term_year"].astype(str).str.replace(".0", "", regex=False).str[-2:])
+    agg = (
+        tmp.groupby("Term")["prob_optin"]
+        .agg(["mean", "count"])
+        .reset_index()
+        .rename(columns={"mean": "Avg Opt-In", "count": "Students"})
+    )
+    agg["Avg Opt-In %"] = agg["Avg Opt-In"] * 100
+    agg = agg.sort_values("Term")
+    fig = px.line(agg, x="Term", y="Avg Opt-In %", markers=True,
+                  color_discrete_sequence=["#2563eb"],
+                  labels={"Avg Opt-In %": "Avg Opt-In Rate (%)"})
+    fig.update_traces(line_width=3, marker_size=8)
+    fig.add_hline(y=50, line_dash="dash", line_color="#dc2626",
+                  annotation_text="50% Threshold", annotation_font_color="#dc2626")
+    fig.update_layout(height=340, xaxis_title="Term", yaxis_title="Avg Opt-In Rate (%)",
+                      xaxis_tickangle=45, **_CHART_LAYOUT)
+    st.plotly_chart(fig, width="stretch")
 
-
-
-def render_book_quantities(df: pd.DataFrame):
-    _section("Top 20 Books — Volume Forecast")
-    if df.empty:
+def render_campus_optin(df: pd.DataFrame):
+    _section("Opt-In Rate by Campus")
+    if df.empty or "campus_code" not in df.columns:
         st.info("No data.")
         return
-    agg = df.groupby("Title")["Predicted_Demand_Units"].sum().reset_index()
-    agg = agg.sort_values("Predicted_Demand_Units", ascending=False).head(20)
-    agg["Short_Title"] = agg["Title"].astype(str).apply(lambda x: x[:22] + "..." if len(x) > 22 else x)
-    fig = px.bar(agg, x="Short_Title", y="Predicted_Demand_Units", color="Predicted_Demand_Units", color_continuous_scale="Viridis")
-    fig.update_layout(height=420, xaxis_title="", yaxis_title="Predicted Units", coloraxis_showscale=False, **_CHART_LAYOUT)
-    fig.update_xaxes(tickangle=45)
-    st.plotly_chart(fig, use_container_width=True)
+    
+    # Map to full names for display
+    df_plot = df.copy()
+    df_plot["Campus"] = df_plot["campus_code"].astype(str).map(lambda x: CAMPUS_MAPPING.get(x, f"Campus {x}"))
+    
+    agg = (
+        df_plot.groupby("Campus")["prob_optin"]
+        .agg(["mean", "count"])
+        .reset_index()
+        .rename(columns={"mean": "Avg Opt-In", "count": "Students"})
+    )
+    agg["Avg Opt-In %"] = agg["Avg Opt-In"] * 100
+    # Sort ascending for horizontal bar (highest appears at top of the chart)
+    agg = agg.sort_values("Avg Opt-In %", ascending=True)
+    
+    # Use a horizontal bar chart
+    fig = px.bar(
+        agg, 
+        x="Avg Opt-In %", 
+        y="Campus", 
+        orientation='h',
+        color="Avg Opt-In %", 
+        color_continuous_scale="Viridis", # Better visibility
+        text="Avg Opt-In %",
+        labels={"Campus": "", "Avg Opt-In %": "Opt-In Rate (%)"}
+    )
+    fig.update_traces(texttemplate="%{text:.1f}%", textposition="outside", textfont_color="#000000")
+    
+    # Merge global layout with custom margins to avoid conflicts
+    campus_layout = _CHART_LAYOUT.copy()
+    campus_layout["margin"] = dict(l=220, r=40, t=40, b=40)
+    
+    fig.update_layout(
+        height=500, 
+        xaxis_title="Avg Opt-In Rate (%)", 
+        yaxis_title="",
+        coloraxis_showscale=False, 
+        **campus_layout
+    )
+    st.plotly_chart(fig, width="stretch")
 
-def render_word_cloud(df: pd.DataFrame):
-    _section("Book Title Word Cloud")
-    if df.empty:
+def render_bundle_discount_impact(df: pd.DataFrame):
+    _section("Bundle Discount Impact on Student Opt-In")
+    if df.empty or "bundle_discount_pct" not in df.columns:
+        st.info("No data.")
         return
-    agg = df.groupby("Title")["Predicted_Demand_Units"].sum()
-    freq_dict = agg.to_dict()
-    if not freq_dict:
+    tmp = df[df["bundle_discount_pct"].notna() & df["prob_optin"].notna()].copy()
+    tmp["bundle_discount_pct"] = pd.to_numeric(tmp["bundle_discount_pct"], errors="coerce")
+    tmp = tmp.dropna(subset=["bundle_discount_pct"])
+    if tmp.empty:
+        st.info("No discount data.")
         return
-        
-    from collections import defaultdict
-    word_freq = defaultdict(int)
-    for title, count in freq_dict.items():
-        for word in str(title).split():
-            # Filter out small words or unhelpful words to improve visually
-            if len(word) > 4 and word.lower() not in ['edition', 'volume', 'unknown', 'title']:
-                word_freq[word] += count
-                
-    if not word_freq:
+    # Data reality: ~84% values in 0–10%, most in tiny bands
+    # Use granular bands that match actual distribution
+    bins   = [-210, -10, -5, 0, 0.1, 0.2, 1.1]
+    labels = ["< -10% (Overprice)", "-10% to -5%", "-5% to 0%",
+              "Exactly 0%", "0% to 0.1%", "0.1% to 1%"]
+    tmp["Discount Range"] = pd.cut(tmp["bundle_discount_pct"], bins=bins, labels=labels, include_lowest=True)
+    agg = (tmp.groupby("Discount Range", observed=True)["prob_optin"]
+              .agg(["mean", "count"]).reset_index())
+    agg["Avg Opt-In %"] = (agg["mean"] * 100).round(1)
+    agg["Students"] = agg["count"]
+    agg = agg.dropna(subset=["Avg Opt-In %"])
+
+    # Distinct colors per bar
+    bar_colors = ["#dc2626", "#f97316", "#eab308", "#64748b", "#10b981", "#2563eb"]
+    fig = px.bar(
+        agg, x="Discount Range", y="Avg Opt-In %",
+        color="Discount Range",
+        color_discrete_sequence=bar_colors,
+        text="Avg Opt-In %",
+        labels={"Discount Range": "Bundle Discount Band"},
+        custom_data=["Students"],
+    )
+    fig.update_traces(
+        texttemplate="%{text:.1f}%",
+        textposition="outside",
+        textfont_color="#000000",
+        showlegend=False,
+        hovertemplate="<b>%{x}</b><br>Avg Opt-In: %{y:.1f}%<br>Students: %{customdata[0]:,}<extra></extra>"
+    )
+    fig.update_layout(height=360, xaxis_title="Bundle Discount Band",
+                      yaxis_title="Avg Opt-In Rate (%)", xaxis_tickangle=15,
+                      showlegend=False, **_CHART_LAYOUT)
+    st.plotly_chart(fig, width="stretch")
+
+
+def render_potential_savings_by_dept(df: pd.DataFrame):
+    _section("Top 10 Departments by Total Potential Savings")
+    if df.empty or "potential_savings" not in df.columns or "dept_code" not in df.columns:
+        st.info("No savings data available.")
         return
-        
-    wc = WordCloud(width=1200, height=350, background_color=None, mode="RGBA", colormap="Blues").generate_from_frequencies(word_freq)
-    fig, ax = plt.subplots(figsize=(12, 3.5))
-    ax.imshow(wc, interpolation="bilinear")
-    ax.axis("off")
-    fig.patch.set_alpha(0.0)
-    st.pyplot(fig)
+    
+    tmp = df[df["potential_savings"].notna()].copy()
+    tmp["potential_savings"] = pd.to_numeric(tmp["potential_savings"], errors="coerce")
+    tmp = tmp[tmp["potential_savings"] > 0]
+    if tmp.empty:
+        st.info("No positive savings data.")
+        return
+    
+    # Map dept codes to full names
+    tmp["Dept Name"] = tmp["dept_code"].astype(str).map(lambda x: DEPT_MAPPING.get(x, x))
+    
+    # Scale up to full population (sample factor)
+    scale = 15739385 / len(df) if len(df) > 0 else 1
+    
+    agg = (
+        tmp.groupby("Dept Name")["potential_savings"]
+        .sum()
+        .reset_index()
+        .rename(columns={"potential_savings": "Total Savings"})
+    )
+    agg["Total Savings (Est. $)"] = (agg["Total Savings"] * scale / 1_000).round(1)  # in $K
+    top10 = agg.nlargest(10, "Total Savings (Est. $)").sort_values("Total Savings (Est. $)", ascending=True)
+    
+    fig = px.bar(
+        top10, x="Total Savings (Est. $)", y="Dept Name", orientation="h",
+        color="Total Savings (Est. $)", color_continuous_scale="Greens",
+        text="Total Savings (Est. $)",
+        labels={"Dept Name": "", "Total Savings (Est. $)": "Est. Savings ($K)"}
+    )
+    fig.update_traces(texttemplate="$%{text:,.1f}K", textposition="outside", textfont_color="#000000")
+    savings_layout = _CHART_LAYOUT.copy()
+    savings_layout["margin"] = dict(l=180, r=60, t=20, b=20)
+    fig.update_layout(
+        height=380,
+        xaxis_title="Estimated Potential Savings ($K)",
+        yaxis_title="",
+        coloraxis_showscale=False,
+        **savings_layout
+    )
+    st.plotly_chart(fig, width="stretch")
 
 # ── main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    with st.spinner("Processing Hybrid Data Architecture (7.5M Summary + ML Sample)…"):
-        summary_df_full = get_summary_data()
-        raw_df_sampled = get_raw_data()
-        clf, fi_df, features, acc = get_trained_model(raw_df_sampled)
+    summary_df_full = get_summary_data()
+    raw_df_sampled = get_raw_data()
+    
+    acc = 0.61 
+    try:
+        campus_metrics = pd.read_csv("release/campus_analysis.csv")
+        if not campus_metrics.empty and "roc_auc" in campus_metrics.columns:
+            acc = campus_metrics["roc_auc"].mean()
+    except:
+        pass
 
     render_header()
 
-    # Sidebar: filters + gauge
     filters_col, main_col = st.columns([0.85, 4.15])
     with filters_col:
         filter_values = render_filters(summary_df_full)
-        
-        # Filter both datasets
-        summary_filtered = apply_filters(summary_df_full, filter_values, is_summary=True)
-        sampled_filtered_base = apply_filters(raw_df_sampled, filter_values, is_summary=False)
-        
-        render_technical_accuracy_gauge(acc)
-
-    # Apply ML predictions to sampled filtered data for simulations
-    sampled_filtered = apply_predictions(sampled_filtered_base, clf, features, discount_pct=0)
-    
-    # Scale the sample to match the total population volume for accurate chart representation
-    total_demand = summary_filtered["Book_Count"].sum()
-    sample_demand_sum = sampled_filtered["Predicted_Demand_Units"].sum() if "Predicted_Demand_Units" in sampled_filtered.columns else len(sampled_filtered)
-    
-    scale_factor = total_demand / sample_demand_sum if sample_demand_sum > 0 else 1.0
-    
-    # Scale up demand explicitly to align visual charts with global KPIs
-    if "Predicted_Demand_Units" in sampled_filtered.columns:
-        sampled_filtered["Predicted_Demand_Units"] = sampled_filtered["Predicted_Demand_Units"] * scale_factor
-    else:
-        sampled_filtered["Predicted_Demand_Units"] = scale_factor
-        
-    # Demand units have scaled, so we must re-calculate the dependent Projected Spend
-    price = sampled_filtered.get("Unit_Price", 100)
-    prob = sampled_filtered.get("Predicted_Purchase_Prob", 1.0)
-    sampled_filtered["Projected_Spend"] = sampled_filtered["Predicted_Demand_Units"] * price * prob
+        summary_filtered = apply_filters(summary_df_full, filter_values)
+        sampled_filtered = apply_filters(raw_df_sampled, filter_values)
 
     with main_col:
-        # ── Row 0: KPI Cards (Accuracy from Summary, Confidence from ML) ──────
         render_top_kpis(summary_filtered, sampled_filtered)
-
         st.markdown("<hr style='border:1px solid rgba(100,150,220,0.15);margin:10px 0;'>", unsafe_allow_html=True)
 
-        # ── Row 1: Price Category Spend | Format Preference (Swapped) ─────────────
+        # Row 1: Adoption model opt-in | Student enrollment opt-in
         r1_l, r1_r = st.columns(2)
         with r1_l:
-            render_price_cat_spend(sampled_filtered)
+            render_adoption_type_optin(sampled_filtered)
         with r1_r:
-            render_format_preference_donut(sampled_filtered)
+            render_student_type_adoption(sampled_filtered)
 
         st.markdown("<hr style='border:1px solid rgba(100,150,220,0.15);margin:10px 0;'>", unsafe_allow_html=True)
 
-        # ── Row 2: Price Distribution | High-Friction Titles ─────────────────
+        # Row 2: Probability distribution | STEM vs non-STEM
         r2_l, r2_r = st.columns(2)
         with r2_l:
-            render_price_distribution(sampled_filtered)
+            render_optin_vs_optout_by_model(sampled_filtered)
         with r2_r:
-            render_high_friction_titles(sampled_filtered)
+            render_ebook_vs_physical_optin(sampled_filtered)
 
         st.markdown("<hr style='border:1px solid rgba(100,150,220,0.15);margin:10px 0;'>", unsafe_allow_html=True)
 
-        # ── Row 3: Term-wise Spend Ratio | Term-wise Adoption (line) ─────────
+        # Row 3: Top departments | Campus comparison
         r3_l, r3_r = st.columns(2)
         with r3_l:
-            render_term_spend_ratio_by_price(sampled_filtered)
+            render_top_dept_optin(sampled_filtered)
         with r3_r:
-            render_term_spend_by_adoption(sampled_filtered)
+            render_campus_optin(sampled_filtered)
 
         st.markdown("<hr style='border:1px solid rgba(100,150,220,0.15);margin:10px 0;'>", unsafe_allow_html=True)
 
-        # ── Row 4: Scatter Plot (Student focus) | Publisher Savings ROI ──────────
+        # Row 4: Price vs prob scatter | Bundle discount impact
         r4_l, r4_r = st.columns(2)
         with r4_l:
-            render_price_vs_optout_scatter(sampled_filtered)
+            render_scatter_price_vs_prob(sampled_filtered)
         with r4_r:
-            render_publisher_savings_opportunity(sampled_filtered)
+            render_bundle_discount_impact(sampled_filtered)
 
         st.markdown("<hr style='border:1px solid rgba(100,150,220,0.15);margin:10px 0;'>", unsafe_allow_html=True)
 
-        # ── Row 5: Volume Forecast & Word Cloud ─────────────────────────────
-        render_book_quantities(sampled_filtered)
-        render_word_cloud(sampled_filtered)
+        # Row 5 full-width: Term trend line
+        render_optin_by_term(sampled_filtered)
 
+        st.markdown("<hr style='border:1px solid rgba(100,150,220,0.15);margin:10px 0;'>", unsafe_allow_html=True)
+
+        # Row 6 full-width: Potential savings by department
+        render_potential_savings_by_dept(sampled_filtered)
+
+        st.markdown("<hr style='border:1px solid rgba(100,150,220,0.15);margin:10px 0;'>", unsafe_allow_html=True)
+
+        # Row 7 full-width: Word Cloud of most opted-in book titles
+        _section("Most Opted-In Book Titles — Word Cloud")
+        if not sampled_filtered.empty and "title" in sampled_filtered.columns:
+            opted_in_titles = sampled_filtered[sampled_filtered["target"].astype(str) == "1"]["title"].dropna()
+            if not opted_in_titles.empty:
+                try:
+                    from wordcloud import WordCloud, STOPWORDS
+                    import matplotlib.pyplot as plt
+                    import io
+
+                    # Remove common noisy book-title words
+                    extra_stopwords = {
+                        "EBK", "BUNDLE", "ACCESS", "CARD", "CODE", "EDITION",
+                        "WITH", "AND", "THE", "FOR", "AN", "A", "OF", "IN",
+                        "PACKAGE", "VOL", "VOLUME", "PRINT", "PKG", "PLUS",
+                        "ENHANCED", "NEW", "UPDATED", "LOOSE", "LEAF", "CUSTOM",
+                        "BRIEF", "INTEGRATED", "ONLINE", "CONNECT", "MINDTAP",
+                        "CENGAGE", "PEARSON", "MCGRAW", "WILEY", "SAGE",
+                    }
+                    stopwords = STOPWORDS.union(extra_stopwords)
+
+                    # Build frequency dict from titles for a richer cloud
+                    from collections import Counter
+                    import matplotlib.colors as mcolors
+                    words = [w for t in opted_in_titles.tolist()
+                             for w in t.upper().split()
+                             if w not in stopwords and len(w) > 2]
+                    freq = Counter(words)
+
+                    # Custom bright color function — vivid tab10 colors, no dull grey
+                    bright_palette = [
+                        "#e63946", "#f4a261", "#2a9d8f", "#e76f51",
+                        "#457b9d", "#6a0572", "#f72585", "#4361ee",
+                        "#3a86ff", "#06d6a0", "#fb8500", "#8338ec",
+                    ]
+                    import random
+                    random.seed(42)
+                    def bright_color_func(word, font_size, position, orientation, random_state=None, **kwargs):
+                        return random.choice(bright_palette)
+
+                    wc = WordCloud(
+                        width=1800, height=520,
+                        background_color="#f8fafc",
+                        color_func=bright_color_func,
+                        max_words=200,
+                        collocations=False,
+                        stopwords=stopwords,
+                        prefer_horizontal=1.0,
+                        min_font_size=10,
+                        max_font_size=90,
+                        relative_scaling=0.3,
+                        margin=2,
+                        repeat=True,
+                    ).generate_from_frequencies(freq)
+
+                    fig_wc, ax = plt.subplots(figsize=(16, 5.5))
+                    ax.imshow(wc, interpolation="bilinear")
+                    ax.axis("off")
+                    fig_wc.patch.set_facecolor("#f8fafc")
+                    ax.set_facecolor("#f8fafc")
+                    plt.tight_layout(pad=0.5)
+                    buf = io.BytesIO()
+                    fig_wc.savefig(buf, format="png", dpi=180, bbox_inches="tight", facecolor="#f8fafc")
+                    buf.seek(0)
+                    st.image(buf, use_container_width=True)
+                    plt.close(fig_wc)
+                except ImportError:
+                    st.warning("⚠️ WordCloud library not installed. Run: `pip install wordcloud`")
+            else:
+                st.info("No opted-in titles to display.")
 
 if __name__ == "__main__":
     main()
