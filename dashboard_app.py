@@ -38,7 +38,7 @@ st.markdown(
     /* ── Sidebar ── */
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #1a3a5c 0%, #0f2a44 100%);
-        border-right: 3px solid #2563eb;
+        border-right: 3px solid #0055ff;
     }
     /* Default sidebar labels (outside filter box) = light blue */
     [data-testid="stSidebar"] label {
@@ -116,15 +116,15 @@ st.markdown(
     .kpi-card:hover {
         transform: translateY(-4px);
         box-shadow: 0 10px 24px rgba(15,40,80,0.15);
-        border-color: #2563eb;
+        border-color: #0055ff;
     }
     .kpi-card.hero {
         background: linear-gradient(135deg, #1a3a5c 0%, #1e4d87 100%);
-        border: 2px solid #2563eb;
-        box-shadow: 0 6px 20px rgba(37,99,235,0.25);
+        border: 2px solid #0055ff;
+        box-shadow: 0 6px 20px rgba(0, 85, 255, 0.35);
     }
     .kpi-card.hero::after {
-        background: #60a5fa;
+        background: #3399ff;
         opacity: 1;
     }
     .kpi-label {
@@ -149,17 +149,17 @@ st.markdown(
     /* ── Advanced Interactive CSS ── */
     
     /* Dynamic Status Alerts */
-    .kpi-card.status-good { border-color: #10b981; }
-    .kpi-card.status-good::after { background: #10b981; }
-    .kpi-card.status-bad { border-color: #ef4444; }
-    .kpi-card.status-bad::after { background: #ef4444; }
+    .kpi-card.status-good { border-color: #00e676; }
+    .kpi-card.status-good::after { background: #00e676; }
+    .kpi-card.status-bad { border-color: #ff1744; }
+    .kpi-card.status-bad::after { background: #ff1744; }
     
     /* Peer Comparison */
     .peer-comparison { font-size: 0.75rem; font-weight: 600; margin-top: 6px; margin-bottom: 0; }
-    .peer-good { color: #10b981; }
-    .peer-bad { color: #ef4444; }
+    .peer-good { color: #00e676; }
+    .peer-bad { color: #ff1744; }
     .hero .peer-good { color: #ffffff; opacity: 0.9; }
-    .hero .peer-bad { color: #fca5a5; }
+    .hero .peer-bad { color: #ff8a80; }
 
     /* ── Dashboard Header ── */
     .dashboard-header {
@@ -168,7 +168,7 @@ st.markdown(
         padding: 20px 28px;
         margin-bottom: 20px;
         box-shadow: 0 6px 20px rgba(15,40,80,0.2);
-        border-left: 5px solid #60a5fa;
+        border-left: 5px solid #0055ff;
     }
     .dashboard-header-title {
         font-size: 1.5rem;
@@ -291,8 +291,8 @@ _CHART_LAYOUT = dict(
     ),
 )
 
-_STACKED_COLORS = ["#2563eb", "#059669", "#d97706", "#dc2626", "#7c3aed", "#0891b2"]
-_PIE_COLORS    = ["#1d4ed8", "#3b82f6", "#60a5fa", "#93c5fd"]
+_STACKED_COLORS = ["#0055ff", "#00e676", "#ff6d00", "#ff1744", "#b400ff", "#00e5ff"]
+_PIE_COLORS    = ["#0033cc", "#0055ff", "#3399ff", "#80ccff"]
 
 
 # ── data / model cache ────────────────────────────────────────────────────────
@@ -400,10 +400,26 @@ def render_goal_seeker(df: pd.DataFrame):
     base_total_savings = (base_optins * avg_savings) / 1_000_000
     
     cc1, cc2 = st.columns(2)
+    
+    html1 = f"""
+    <div style="background: #ffffff; padding: 15px 20px; border-radius: 8px; border-left: 5px solid #0055ff; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Simulated New Opt-In Count</div>
+        <div style="color: #0f172a; font-size: 1.8rem; font-weight: 800; margin: 4px 0;">{new_optins:,}</div>
+        <div style="color: #059669; font-size: 0.85rem; font-weight: 700; margin-top: 4px; display: inline-block; background: #dcfce7; padding: 2px 8px; border-radius: 12px;">↑ +{new_optins - base_optins:,} newly adopted students</div>
+    </div>
+    """
     with cc1:
-        st.metric("Simulated New Opt-In Count", f"{new_optins:,}", f"+{new_optins - base_optins:,} newly adopted students")
+        st.markdown(html1, unsafe_allow_html=True)
+        
+    html2 = f"""
+    <div style="background: #ffffff; padding: 15px 20px; border-radius: 8px; border-left: 5px solid #0055ff; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Simulated Total Savings ($M)</div>
+        <div style="color: #0f172a; font-size: 1.8rem; font-weight: 800; margin: 4px 0;">${new_total_savings:,.1f}M</div>
+        <div style="color: #059669; font-size: 0.85rem; font-weight: 700; margin-top: 4px; display: inline-block; background: #dcfce7; padding: 2px 8px; border-radius: 12px;">↑ +${new_total_savings - base_total_savings:,.1f}M additional ROI</div>
+    </div>
+    """
     with cc2:
-        st.metric("Simulated Total Savings ($M)", f"${new_total_savings:,.1f}M", f"+${new_total_savings - base_total_savings:,.1f}M additional ROI")
+        st.markdown(html2, unsafe_allow_html=True)
 
 # ── Sidebar Components ──────────────────────────────────────────────────────
 
@@ -522,7 +538,7 @@ def render_ebook_vs_physical_optin(df: pd.DataFrame):
     fig = px.bar(
         agg, x="Format", y="Avg Opt-In %",
         color="Format",
-        color_discrete_map={"eBook": "#2563eb", "Physical Book": "#059669"},
+        color_discrete_map={"eBook": "#0055ff", "Physical Book": "#00e676"},
         text="Avg Opt-In %",
         labels={"Format": "Book Format", "Avg Opt-In %": "Avg Opt-In Rate (%)"},
     )
@@ -826,6 +842,62 @@ def render_potential_savings_by_dept(df: pd.DataFrame):
 
 # ── main ──────────────────────────────────────────────────────────────────────
 
+@st.cache_data(show_spinner=False)
+def generate_word_cloud_img(titles_series: pd.Series):
+    from wordcloud import WordCloud, STOPWORDS
+    import matplotlib.pyplot as plt
+    import io
+    from collections import Counter
+    import random
+
+    # Remove common noisy book-title words
+    extra_stopwords = {
+        "EBK", "BUNDLE", "ACCESS", "CARD", "CODE", "EDITION",
+        "WITH", "AND", "THE", "FOR", "AN", "A", "OF", "IN",
+        "PACKAGE", "VOL", "VOLUME", "PRINT", "PKG", "PLUS",
+        "ENHANCED", "NEW", "UPDATED", "LOOSE", "LEAF", "CUSTOM",
+        "BRIEF", "INTEGRATED", "ONLINE", "CONNECT", "MINDTAP",
+        "CENGAGE", "PEARSON", "MCGRAW", "WILEY", "SAGE",
+    }
+    stopwords = STOPWORDS.union(extra_stopwords)
+
+    # Build frequency dict from titles for a richer cloud
+    words = [w for t in titles_series.tolist()
+             for w in str(t).upper().split()
+             if w not in stopwords and len(w) > 2]
+    freq = Counter(words)
+
+    # Custom bright color function — vivid tab10 colors, no dull grey
+    bright_palette = [
+        "#e63946", "#f4a261", "#2a9d8f", "#e76f51",
+        "#457b9d", "#6a0572", "#f72585", "#4361ee",
+        "#3a86ff", "#06d6a0", "#fb8500", "#8338ec",
+    ]
+    random.seed(42)
+    def bright_color_func(word, font_size, position, orientation, random_state=None, **kwargs):
+        return random.choice(bright_palette)
+
+    wc = WordCloud(
+        width=1800, height=520,
+        background_color="#f8fafc",
+        color_func=bright_color_func,
+        max_words=200,
+        collocations=False,
+        prefer_horizontal=0.7,
+        font_path=None
+    ).generate_from_frequencies(freq)
+
+    fig, ax = plt.subplots(figsize=(20, 6), facecolor="#f8fafc")
+    ax.imshow(wc, interpolation="bilinear")
+    ax.axis("off")
+    plt.tight_layout(pad=0)
+    
+    img_buf = io.BytesIO()
+    plt.savefig(img_buf, format="png", dpi=100, bbox_inches='tight', facecolor="#f8fafc")
+    img_buf.seek(0)
+    plt.close(fig)
+    return img_buf
+
 def main():
     summary_df_full = get_summary_data()
     raw_df_sampled = get_raw_data()
@@ -908,70 +980,14 @@ def main():
             opted_in_titles = sampled_filtered[sampled_filtered["target"].astype(str) == "1"]["title"].dropna()
             if not opted_in_titles.empty:
                 try:
-                    from wordcloud import WordCloud, STOPWORDS
-                    import matplotlib.pyplot as plt
-                    import io
-
-                    # Remove common noisy book-title words
-                    extra_stopwords = {
-                        "EBK", "BUNDLE", "ACCESS", "CARD", "CODE", "EDITION",
-                        "WITH", "AND", "THE", "FOR", "AN", "A", "OF", "IN",
-                        "PACKAGE", "VOL", "VOLUME", "PRINT", "PKG", "PLUS",
-                        "ENHANCED", "NEW", "UPDATED", "LOOSE", "LEAF", "CUSTOM",
-                        "BRIEF", "INTEGRATED", "ONLINE", "CONNECT", "MINDTAP",
-                        "CENGAGE", "PEARSON", "MCGRAW", "WILEY", "SAGE",
-                    }
-                    stopwords = STOPWORDS.union(extra_stopwords)
-
-                    # Build frequency dict from titles for a richer cloud
-                    from collections import Counter
-                    import matplotlib.colors as mcolors
-                    words = [w for t in opted_in_titles.tolist()
-                             for w in t.upper().split()
-                             if w not in stopwords and len(w) > 2]
-                    freq = Counter(words)
-
-                    # Custom bright color function — vivid tab10 colors, no dull grey
-                    bright_palette = [
-                        "#e63946", "#f4a261", "#2a9d8f", "#e76f51",
-                        "#457b9d", "#6a0572", "#f72585", "#4361ee",
-                        "#3a86ff", "#06d6a0", "#fb8500", "#8338ec",
-                    ]
-                    import random
-                    random.seed(42)
-                    def bright_color_func(word, font_size, position, orientation, random_state=None, **kwargs):
-                        return random.choice(bright_palette)
-
-                    wc = WordCloud(
-                        width=1800, height=520,
-                        background_color="#f8fafc",
-                        color_func=bright_color_func,
-                        max_words=200,
-                        collocations=False,
-                        stopwords=stopwords,
-                        prefer_horizontal=1.0,
-                        min_font_size=10,
-                        max_font_size=90,
-                        relative_scaling=0.3,
-                        margin=2,
-                        repeat=True,
-                    ).generate_from_frequencies(freq)
-
-                    fig_wc, ax = plt.subplots(figsize=(16, 5.5))
-                    ax.imshow(wc, interpolation="bilinear")
-                    ax.axis("off")
-                    fig_wc.patch.set_facecolor("#f8fafc")
-                    ax.set_facecolor("#f8fafc")
-                    plt.tight_layout(pad=0.5)
-                    buf = io.BytesIO()
-                    fig_wc.savefig(buf, format="png", dpi=180, bbox_inches="tight", facecolor="#f8fafc")
-                    buf.seek(0)
-                    st.image(buf, use_container_width=True)
-                    plt.close(fig_wc)
-                except ImportError:
-                    st.warning("⚠️ WordCloud library not installed. Run: `pip install wordcloud`")
+                    img_data = generate_word_cloud_img(opted_in_titles)
+                    st.image(img_data, use_container_width=True)
+                except Exception as e:
+                    st.warning(f"Word Cloud could not be generated: {e}")
             else:
-                st.info("No opted-in titles to display.")
+                st.info("No opted-in titles available for word cloud.")
+        else:
+            st.info("No title data available.")
 
 if __name__ == "__main__":
     main()
