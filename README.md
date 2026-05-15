@@ -1,43 +1,45 @@
-# 📦 University Bulk Order & Predictive Procurement Analytics (V2)
+# 📦 University Predictive Procurement & Student Analytics Dashboard (V2.1)
 
-**A high-performance predictive analytics engine that projects behavioral trends for over 15.7M enrollment records to forecast demand and identify massive ROI savings for university systems.**
-
----
-
-## 🚀 Dashboard Features (V2.1)
-
-The latest version of the dashboard provides a **student-centric** view of procurement data:
-
-*   **Population Projections**: Extrapolates behavioral patterns from a 0.5% sample to a global population of **~600,000 unique students**.
-*   **Executive KPIs**: Real-time tracking of **Total Projected Savings ($M)**, **Avg Savings / Student**, and **Opt-In Capture Ratios**.
-*   **Procurement Prioritization**: Identifies the Top 15 Departments with the highest potential for negotiation ROI.
-*   **Price Elasticity Analysis**: Visualizes how bundle discounts (from -30% to +30%) directly impact student adoption probabilities.
-*   **Format Adoption**: Comparison of **eBook vs Physical** opt-in rates to guide digital transformation.
-*   **Vivid Word Cloud**: A frequency-weighted visualization of high-demand material titles.
+**A high-performance, interactive predictive analytics engine that projects behavioral trends across 15.7M enrollment records to forecast demand, run economic simulations, and identify massive ROI savings for university systems.**
 
 ---
 
-## 🏗️ Architecture
+## 🚀 Interactive Dashboard Features (V2.1)
+
+The latest version transforms static reporting into a "SaaS-grade" interactive decision-support interface for procurement stakeholders:
+
+*   **Interactive Goal Seeker (What-If Analysis)**: A dynamic simulation engine that allows stakeholders to adjust "Additional Institutional Subsidies" via a slider, instantly recalculating expected student opt-in rates and projecting total new ROI savings.
+*   **Smart KPI Architecture**: 
+    *   **Context-Aware Comparisons**: Automatically compares performance against a 52.5% global benchmark, but intelligently hides redundant data when viewing the global dataset.
+    *   **Dynamic Status Alerts**: KPI borders provide instant visual feedback, shifting between success (Green) and alert (Red) states based on performance metrics.
+*   **Population Projections**: Extrapolates behavioral patterns from a high-fidelity sample to a global population of **~566,000 unique students**.
+*   **Procurement Prioritization**: Interactive charts identify the Top 15 Departments with the highest potential for negotiation ROI.
+*   **Format & Model Analysis**: Compares adoption rates across structural models (First Day vs. Required vs. Explore Only) and formats (eBook vs. Physical).
+*   **High-Demand Word Cloud**: A frequency-weighted, visual map of the most frequently adopted and opted-in course material titles.
+
+---
+
+## 🏗️ Architecture Pipeline
 
 ```mermaid
 graph TD
-    A[Population Global KPIs .csv] --> B(Scaling & Projection Engine)
+    A[Global Summaries .csv] --> B(Dynamic Filtering Engine)
     C[Behavioral Sample .csv] --> B
-    B --> D{Streamlit V2 Dashboard}
-    D --> E[KPI Cards: $M Savings]
-    D --> F[Department ROI Ranking]
-    D --> G[Price Sensitivity Analysis]
-    D --> H[Dynamic Word Cloud]
+    B --> D{Streamlit V2.1 App}
+    D --> E[Smart KPI Cards & Alerts]
+    D --> F[Interactive Goal Seeker]
+    D --> G[Department ROI & Price Sensitivity]
+    D --> H[Word Cloud Visualization]
 ```
 
 ## 📉 Impact Summary
 
-Based on the 15.7M record population analysis:
+Based on the full population data model:
 
-*   **Total Students Impacted**: ~566,830 (Estimated)
 *   **Total Enrollments Processed**: 15,739,385 records
-*   **Opt-In Accuracy**: 91.1% Model Confidence
-*   **Total Economic Value**: Identifies hundreds of millions in potential university-wide savings.
+*   **Total Students Impacted**: ~566,830 (Estimated using empirical ratio)
+*   **Prediction Model Validation**: Validated via rigorous AUC-ROC scoring on underlying dataset.
+*   **Economic Strategy**: Empowers universities to optimize bulk purchasing and maximize student savings through data-backed negotiations.
 
 ---
 
@@ -53,7 +55,7 @@ pip install -r requirements.txt
 ```
 
 ### 2. Launch Dashboard
-The dashboard relies on the pre-processed files in the `resource/` directory. No further ETL is required for a standard run.
+The dashboard uses optimized datasets in the `resource/` directory for instant load times. No raw ETL is required.
 ```bash
 streamlit run dashboard_app.py --server.port 8502
 ```
@@ -62,14 +64,14 @@ streamlit run dashboard_app.py --server.port 8502
 
 ## 🛠️ Tech Stack
 
-| Tool | Purpose |
-|------|---------|
-| **Python 3.12** | Core execution and data processing |
-| **Streamlit** | High-performance interactive web UI |
-| **Pandas** | Data manipulation and scaling |
-| **Plotly** | Advanced interactive visualizations |
-| **WordCloud** | Text frequency analysis & visualization |
-| **Mermaid** | System architecture documentation |
+| Component | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Core** | Python 3.12 | Fast execution and logic routing |
+| **Frontend** | Streamlit | Highly interactive, state-driven web UI |
+| **Data Engine** | Pandas | In-memory manipulation and filtering |
+| **Visualization** | Plotly | Interactive, responsive charting |
+| **Styling** | Custom CSS | Clean, modern layout with dynamic alerts |
+| **Text Analytics**| WordCloud | Keyword extraction and visualization |
 
 ---
-*Developed for University Bulk Order & Predictive Procurement Analytics.*
+*Built to bring intelligent forecasting and modern UX to higher education procurement.*
