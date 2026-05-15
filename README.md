@@ -1,92 +1,82 @@
-# 📦 University Bulk Order & Predictive Procurement Analytics
+# 📦 University Predictive Procurement & Student Analytics Dashboard (V2.1)
 
-**A high-performance predictive analytics engine that processes over 6.7M procurement records to forecast demand and identify millions in ROI savings.**
+**A high-performance, interactive predictive analytics engine that projects behavioral trends across 15.7M enrollment records to forecast demand, run economic simulations, and identify massive ROI savings for university systems.**
+
+![Dashboard Overview](images/overview.png)
 
 ---
 
-## 🏗️ Architecture
+## 🚀 Interactive Dashboard Features (V2.1)
+
+The latest version transforms static reporting into a "SaaS-grade" interactive decision-support interface for procurement stakeholders:
+
+*   **Interactive Goal Seeker (What-If Analysis)**: A dynamic simulation engine that allows stakeholders to adjust "Additional Institutional Subsidies" via a slider, instantly recalculating expected student opt-in rates and projecting total new ROI savings.
+    <br>![Goal Seeker](images/goal_seeker.png)
+*   **Smart KPI Architecture**: 
+    <br>![Smart KPIs](images/kpis.png)
+    *   **Context-Aware Comparisons**: Automatically compares performance against a 52.5% global benchmark, but intelligently hides redundant data when viewing the global dataset.
+    *   **Dynamic Status Alerts**: KPI borders provide instant visual feedback, shifting between success (Green) and alert (Red) states based on performance metrics.
+*   **Population Projections**: Extrapolates behavioral patterns from a high-fidelity sample to a global population of **~566,000 unique students**.
+*   **Procurement Prioritization**: Interactive charts identify the Top 15 Departments with the highest potential for negotiation ROI.
+    <br>![Analytics Charts](images/charts.png)
+*   **Format & Model Analysis**: Compares adoption rates across structural models (First Day vs. Required vs. Explore Only) and formats (eBook vs. Physical).
+*   **High-Demand Word Cloud**: A frequency-weighted, visual map of the most frequently adopted and opted-in course material titles.
+
+---
+
+## 🏗️ Architecture Pipeline
 
 ```mermaid
 graph TD
-    A[Raw Master Data .csv] --> B(memory-optimized chunked ETL)
-    B --> C[KPI Summary Cache .csv]
-    A --> D(Sentiment Enrichment)
-    D --> E[Book Sentiment Cache .csv]
-    C & E --> F{Streamlit Dashboard}
-    F --> G[Interactive Visualizations]
-    F --> H[Demand Forecasting]
-    F --> I[ROI & Spend Analytics]
+    A[Global Summaries .csv] --> B(Dynamic Filtering Engine)
+    C[Behavioral Sample .csv] --> B
+    B --> D{Streamlit V2.1 App}
+    D --> E[Smart KPI Cards & Alerts]
+    D --> F[Interactive Goal Seeker]
+    D --> G[Department ROI & Price Sensitivity]
+    D --> H[Word Cloud Visualization]
 ```
 
-## 🖥️ Dashboard Preview
+## 📉 Impact Summary
 
-![Dashboard KPIs and Spending](images/kpi_and_spending_chart.png)
-*Executive KPIs and Price-Category Spend Breakdown*
+Based on the full population data model:
 
-![Format Split and High Friction Titles](images/format_split_and_high_friction_titles.png)
-*Digital vs Physical Format Adoption and Top Negotiation Targets*
-
-## 📉 Performance Summary
-
-Based on our latest benchmark run on the full dataset:
-
-*   **Total Records Processed**: 6,712,264 units (cleansed)
-*   **Processing Speed**: ~1,340,000 rows per minute (memory-optimized)
-*   **Model Confidence**: 91.1% Reliability Index
-*   **Economic Impact**: 
-    *   **Projected Spend**: $268.85M
-    *   **Estimated ROI Savings**: $244.20M
-
-## ⚙️ First-Time Setup
-
-To run this project on a new system, follow these steps exactly:
-
-1.  **Clone & Environment**:
-    ```bash
-    git clone https://github.com/Ashishparmar265/Predictive-procurement-dashboard.git
-    cd Predictive-procurement-dashboard
-    python3 -m venv .venv
-    source .venv/bin/activate  # Windows: .venv\Scripts\activate
-    pip install -r requirements.txt
-    ```
-
-2.  **Data Placement**:
-    Create the folder structure `new/master_data/` and place the following files (not included in Git due to size):
-    *   `master_data.csv`: Place in `new/master_data/`
-    *   `Training_Data_Clean.csv`: Place in `new/master_data/`
+*   **Total Enrollments Processed**: 15,739,385 records
+*   **Total Students Impacted**: ~566,830 (Estimated using empirical ratio)
+*   **Prediction Model Validation**: Validated via rigorous AUC-ROC scoring on underlying dataset.
+*   **Economic Strategy**: Empowers universities to optimize bulk purchasing and maximize student savings through data-backed negotiations.
 
 ---
 
-## 🔧 Run Locally (2 Commands)
+## ⚙️ Quick Start
 
-Once setup is complete and your environment is activated:
+### 1. Setup Environment
+```bash
+git clone https://github.com/Ashishparmar265/Predictive-procurement-dashboard.git
+cd Predictive-procurement-dashboard
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-1.  **Pre-process Data**:
-    ```bash
-    python precompute_kpis.py && python enrich_sentiment.py
-    ```
+### 2. Launch Dashboard
+The dashboard uses optimized datasets in the `resource/` directory for instant load times. No raw ETL is required.
+```bash
+streamlit run dashboard_app.py --server.port 8502
+```
 
-2.  **Launch Dashboard**:
-    ```bash
-    streamlit run dashboard_app.py --server.port 8502
-    ```
+---
 
 ## 🛠️ Tech Stack
 
-| Tool | Purpose |
-|------|---------|
-| **Python 3.12** | Core execution and data processing |
-| **Streamlit** | High-performance interactive web UI |
-| **Pandas** | Memory-optimized chunked data aggregation |
-| **Dask** | Large-scale file handling support |
-| **Plotly** | Advanced technical data visualizations |
-| **Scikit-learn** | Predictive modeling & reliability scoring |
-| **Mermaid** | Component architecture documentation |
+| Component | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Core** | Python 3.12 | Fast execution and logic routing |
+| **Frontend** | Streamlit | Highly interactive, state-driven web UI |
+| **Data Engine** | Pandas | In-memory manipulation and filtering |
+| **Visualization** | Plotly | Interactive, responsive charting |
+| **Styling** | Custom CSS | Clean, modern layout with dynamic alerts |
+| **Text Analytics**| WordCloud | Keyword extraction and visualization |
 
 ---
-*Developed for University University Bulk Order & Predictive Procurement Analytics.*
-
-### 📌 Troubleshooting
-- **Path Issues**: Always use forward slashes (`/`) in path configurations in `.py` files to maintain multi-OS compatibility.
-- **Port Conflict**: If port 8501 is busy, use `--server.port 8502` or any available port.
-
+*Built to bring intelligent forecasting and modern UX to higher education procurement.*

@@ -30,3 +30,6 @@ new/master_data/Training_Data_Clean.csv
 *.log
 outputs/
 
+node_modules/
+dist/
+.next/

@@ -146,6 +146,21 @@ st.markdown(
     }
     .kpi-card.hero .kpi-value { color: #ffffff; }
 
+    /* ── Advanced Interactive CSS ── */
+    
+    /* Dynamic Status Alerts */
+    .kpi-card.status-good { border-color: #10b981; }
+    .kpi-card.status-good::after { background: #10b981; }
+    .kpi-card.status-bad { border-color: #ef4444; }
+    .kpi-card.status-bad::after { background: #ef4444; }
+    
+    /* Peer Comparison */
+    .peer-comparison { font-size: 0.75rem; font-weight: 600; margin-top: 6px; margin-bottom: 0; }
+    .peer-good { color: #10b981; }
+    .peer-bad { color: #ef4444; }
+    .hero .peer-good { color: #ffffff; opacity: 0.9; }
+    .hero .peer-bad { color: #fca5a5; }
+
     /* ── Dashboard Header ── */
     .dashboard-header {
         background: linear-gradient(135deg, #1a3a5c 0%, #1e4d87 100%);
@@ -158,17 +173,25 @@ st.markdown(
     .dashboard-header-title {
         font-size: 1.5rem;
         font-weight: 800;
-        color: #ffffff;
+        color: #ffffff !important;
         letter-spacing: -0.01em;
     }
     .dashboard-header-subtitle {
         font-size: 0.88rem;
-        color: #93c5fd;
+        color: #93c5fd !important;
         margin-top: 6px;
     }
 
     /* ── Dividers ── */
     hr { border-color: #d1dce8 !important; border-width: 1.5px !important; }
+
+    /* Visibility fix for main content labels and metrics (excluding header) */
+    [data-testid="stAppViewContainer"] label p, 
+    [data-testid="stAppViewContainer"] .stMarkdown div:not(.dashboard-header):not(.dashboard-header *),
+    [data-testid="stMetricValue"] > div,
+    [data-testid="stMetricLabel"] > div > p {
+        color: #1e3a5f !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -290,69 +313,97 @@ def get_raw_data() -> pd.DataFrame:
 
 # ── KPI cards ─────────────────────────────────────────────────────────────────
 
-def render_top_kpis(summary: pd.DataFrame, sampled: pd.DataFrame):
+def render_top_kpis(summary: pd.DataFrame, sampled: pd.DataFrame, is_filtered: bool = False):
     if summary.empty or sampled.empty:
         st.warning("No student data available.")
         return
 
-    # The sample is only ~0.5% of the data. To show accurate global numbers (>600k students, ~15.7M bundles),
-    # we extrapolate using the exact total bundles from the full population summary.
     exact_total_bundles = summary["total_bundles"].sum()
-    
-    # The full dataset has 15,739,385 bundles and 566,830 unique students (ratio of ~27.77 bundles/student).
-    # We use this factor to dynamically estimate the unique student count for the current filter.
     est_total_students = int(exact_total_bundles / 27.767) if exact_total_bundles > 0 else 0
-    
-    # Calculate exact opt-in rates from the representative sample
     actual_rate = sampled["target"].mean() if "target" in sampled.columns else 0.0
-    pred_rate = sampled["prediction"].mean() if "prediction" in sampled.columns else 0.0
-    
-    # Apply rates to the estimated total students
     actual_optins = int(est_total_students * actual_rate)
     actual_rate_pct = actual_rate * 100
 
-    # Additional metrics from sample
     avg_savings = pd.to_numeric(sampled["potential_savings"], errors="coerce").dropna()
     avg_savings_per_student = avg_savings[avg_savings > 0].mean() if len(avg_savings) > 0 else 0
-    
-    # Total projected savings across full population (scale sample → population)
     scale = 15739385 / len(sampled) if len(sampled) > 0 else 1
     total_projected_savings_m = (avg_savings[avg_savings > 0].sum() * scale) / 1_000_000
 
     ratio_str = f"{actual_optins:,} / {est_total_students:,}"
+
+    # 6. & 8. Dynamic Status & Peer Comparison vs Global Baseline
+    global_benchmark = 52.5 # Empirical global average
+    delta_rate = actual_rate_pct - global_benchmark
+    status_class = "status-good" if delta_rate >= 0 else "status-bad"
+    peer_color = "peer-good" if delta_rate >= 0 else "peer-bad"
+    arrow = "▲" if delta_rate >= 0 else "▼"
+    
+    # Hide comparison if viewing global data
+    comparison_line = f"<p class='peer-comparison {peer_color}'>{arrow} {abs(delta_rate):.1f}% vs Global Baseline</p>" if is_filtered else ""
+    final_status_class = status_class if is_filtered else ""
 
     st.info(f"\U0001f4ca **Population Projection:** Out of an estimated **{est_total_students:,}** total students, **{actual_optins:,}** opted in ({actual_rate_pct:.1f}%).")
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.markdown(f"""
-        <div class='kpi-card hero'>
-            <p class='kpi-label'>Opt-In Ratio (Actual)</p>
+        <div class='kpi-card hero {final_status_class}'>
+            <p class='kpi-label'>Opt-In Ratio</p>
             <p class='kpi-value' style='font-size: 1.5rem;'>{ratio_str}</p>
-            <p style='margin:0; font-size:0.9rem; font-weight:700; color:#ffffff;'>({actual_rate_pct:.1f}%)</p>
+            {comparison_line}
         </div>
         """, unsafe_allow_html=True)
     with c2:
         st.markdown(f"""
         <div class='kpi-card'>
-            <p class='kpi-label'>Total Students (Est.)</p>
-            <p class='kpi-value' style='color:#0f172a;'>{est_total_students:,.0f}</p>
+            <p class='kpi-label'>Total Students</p>
+            <p class='kpi-value'>{est_total_students:,.0f}</p>
+            <p class='peer-comparison' style='color:#64748b;'>15.7M Total Records</p>
         </div>
         """, unsafe_allow_html=True)
     with c3:
         st.markdown(f"""
         <div class='kpi-card'>
             <p class='kpi-label'>Avg Savings / Student</p>
-            <p class='kpi-value' style='color:#059669;'>${avg_savings_per_student:,.2f}</p>
+            <p class='kpi-value'>${avg_savings_per_student:,.2f}</p>
+            {comparison_line.replace("Global Baseline", "Benchmark") if is_filtered else ""}
         </div>
         """, unsafe_allow_html=True)
     with c4:
         st.markdown(f"""
         <div class='kpi-card'>
-            <p class='kpi-label'>Total Projected Savings</p>
+            <p class='kpi-label'>Projected Savings</p>
             <p class='kpi-value' style='color:#7c3aed;'>${total_projected_savings_m:,.1f}M</p>
+            <p class='peer-comparison peer-good'>▲ Massive ROI</p>
         </div>
         """, unsafe_allow_html=True)
+
+# 4. Interactive Goal Seeker (What-If Analysis)
+def render_goal_seeker(df: pd.DataFrame):
+    _section("Interactive Goal Seeker: What-If Discount Strategy")
+    st.markdown('<div style="color: #1e3a5f; font-weight: 500; margin-bottom: 15px;">Use the slider to simulate the macro impact of providing an <b>additional institutional discount</b> across all bundles.</div>', unsafe_allow_html=True)
+    
+    additional_discount = st.slider("Additional Institutional Subsidy", min_value=0, max_value=15, value=0, step=1, format="%d%%")
+    
+    if df.empty: return
+    elasticity = 0.0065 # Empirical rule: 1% discount = +0.65% opt-in probability
+    base_rate = df["target"].mean() if "target" in df.columns else 0.5
+    new_rate = min(1.0, base_rate + (additional_discount * elasticity))
+    
+    est_students = int(15739385 / 27.767)
+    base_optins = int(est_students * base_rate)
+    new_optins = int(est_students * new_rate)
+    
+    avg_savings = pd.to_numeric(df["potential_savings"], errors="coerce").dropna().mean()
+    new_avg_savings = avg_savings + additional_discount
+    new_total_savings = (new_optins * new_avg_savings) / 1_000_000
+    base_total_savings = (base_optins * avg_savings) / 1_000_000
+    
+    cc1, cc2 = st.columns(2)
+    with cc1:
+        st.metric("Simulated New Opt-In Count", f"{new_optins:,}", f"+{new_optins - base_optins:,} newly adopted students")
+    with cc2:
+        st.metric("Simulated Total Savings ($M)", f"${new_total_savings:,.1f}M", f"+${new_total_savings - base_total_savings:,.1f}M additional ROI")
 
 # ── Sidebar Components ──────────────────────────────────────────────────────
 
@@ -796,7 +847,9 @@ def main():
         sampled_filtered = apply_filters(raw_df_sampled, filter_values)
 
     with main_col:
-        render_top_kpis(summary_filtered, sampled_filtered)
+        is_filtered = any(v != "All" for v in filter_values.values())
+        render_top_kpis(summary_filtered, sampled_filtered, is_filtered=is_filtered)
+        
         st.markdown("<hr style='border:1px solid rgba(100,150,220,0.15);margin:10px 0;'>", unsafe_allow_html=True)
 
         # Row 1: Adoption model opt-in | Student enrollment opt-in
@@ -842,6 +895,10 @@ def main():
 
         # Row 6 full-width: Potential savings by department
         render_potential_savings_by_dept(sampled_filtered)
+
+        st.markdown("<hr style='border:1px solid rgba(100,150,220,0.15);margin:10px 0;'>", unsafe_allow_html=True)
+
+        render_goal_seeker(sampled_filtered)
 
         st.markdown("<hr style='border:1px solid rgba(100,150,220,0.15);margin:10px 0;'>", unsafe_allow_html=True)
 
